@@ -38,7 +38,7 @@ class TransformImage(object):
                 aug.append(RandomVerticalFlip())
             if augmentations["random_rotation"]:
                 aug.append(RandomRotate())
-            if augmentations["change_RGB_channel"]:
+            if augmentations["switch_RGB_channel"]:
                 aug.append(SwitchRGBChannels())
 
             transform.extend(aug)

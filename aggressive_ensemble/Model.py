@@ -32,8 +32,6 @@ class Model:
 
         self.model_config = model_config
 
-        self.model_id = self.__create_id()
-
         self.labels = labels
 
         self.model = self.__load_model()
@@ -59,6 +57,8 @@ class Model:
                                               num_workers=model_config["num_workers"])}
 
         self.is_inception = (model_config["name"] == 'inception')
+
+        self.model_id = self.__create_id()
 
         print("Model %s succesfully initialized" % (self.model_config['name']))
 
@@ -241,7 +241,7 @@ class Model:
 
                 epoch_stats = [epoch + 1, epoch_loss, score]
                 epoch_stats.extend(labels_score)
-                stats[phase].append(pd.DataFrame([epoch_stats], columns=headers), ignore_index=True)
+                stats[phase] = stats[phase].append(pd.DataFrame([epoch_stats], columns=headers), ignore_index=True)
                 stats[phase].to_csv(path_or_buf=stats_path[phase], index=False)
         time_elapsed = time.time() - since
         print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
