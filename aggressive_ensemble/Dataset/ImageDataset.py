@@ -8,14 +8,12 @@ from pathlib import Path
 
 class ImageDataset(Dataset):
 
-    def __init__(self, csv_file, data_dir, labels, transform=None, preprocessing=None, augmentation=None):
+    def __init__(self, csv_file, data_dir, labels, transform=None):
 
         self.df = pd.get_dummies(pd.read_csv(csv_file))
         self.data_dir = data_dir
         self.labels = labels
         self.transform = transform
-        self.preprocessing = preprocessing
-        self.augmentation = augmentation
         self.df = self.df.replace(to_replace=-1, value=0)
 
     def __len__(self):
@@ -46,12 +44,6 @@ class ImageDataset(Dataset):
         path = list(Path(self.data_dir).glob(str(img_id) + '.*'))[0]
         image = np.asarray(Image.open(path).convert('RGB'))
         sample = {'image': image, 'polygon': polygon, 'labels': labels}
-
-        if self.preprocessing:
-            sample = self.preprocessing(sample)
-
-        if self.augmentation:
-            sample = self.augmentation(sample)
 
         if self.transform:
             sample = self.transform(sample)

@@ -2,8 +2,11 @@ import torch
 import numpy as np
 
 from torchvision import transforms
-from imgaug import augmenters as iaa
 from imgaug.augmentables.polys import Polygon
+from imgaug import augmenters as iaa
+
+__all__ = ['Rescale', 'RotateToHorizontal', 'EdgeDetection', 'ChangeColorspace', 'ExtractPolygon', 'Crop',
+           'Normalize', 'ToTensor', 'RandomVerticalFlip', 'RandomHorizontalFlip', 'RandomRotate', 'SwitchRGBChannels']
 
 
 class RotateToHorizontal(object):
@@ -22,7 +25,7 @@ class RotateToHorizontal(object):
         else:
             angle = np.arctan2(y2, x2) * 180 / np.pi
 
-        pad = max(0, int(20 - (w - object_w) / 2))
+        pad = max(0, int(10 - (w - object_w) / 2))
         t = iaa.Sequential([iaa.Pad(px=pad), iaa.Affine(rotate=-angle)])
         img = t(image=image)
 
@@ -135,3 +138,48 @@ class ToTensor(object):
         t = transforms.ToTensor()
         img = t(image)
         return {'image': img, 'polygon': torch.from_numpy(polygon), 'labels': torch.FloatTensor(labels.values)}
+
+
+class RandomHorizontalFlip(object):
+
+    def __call__(self, sample):
+        image, polygon, labels = sample['image'], sample['polygon'], sample['labels']
+
+        t = iaa.Fliplr(p=0.5)
+        img = t(image=image)
+
+        return {'image': img, 'polygon': polygon, 'labels': labels}
+
+
+class RandomVerticalFlip(object):
+
+    def __call__(self, sample):
+        image, polygon, labels = sample['image'], sample['polygon'], sample['labels']
+
+        t = iaa.Flipud(p=0.5)
+        img = t(image=image)
+
+        return {'image': img, 'polygon': polygon, 'labels': labels}
+
+
+class RandomRotate(object):
+
+    def __call__(self, sample):
+        image, polygon, labels = sample['image'], sample['polygon'], sample['labels']
+
+        t = iaa.Sequential([iaa.Pad(px=0), iaa.Affine(rotate=(0, 360))])
+        img = t(image=image)
+
+        return {'image': img, 'polygon': polygon, 'labels': labels}
+
+
+class SwitchRGBChannels(object):
+
+    def __call__(self, sample):
+        image, polygon, labels = sample['image'], sample['polygon'], sample['labels']
+
+        #
+        #
+        #
+
+        return {'image': image, 'polygon': polygon, 'labels': labels}

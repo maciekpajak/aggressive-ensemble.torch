@@ -13,11 +13,9 @@ import pkbar
 from sklearn.metrics import average_precision_score
 import numpy as np
 
-from aggressive_ensemble.Models.BasicModels import BasicModels
-from aggressive_ensemble.Dataset.ImageDataset import ImageDataset
-from aggressive_ensemble.Tranforms import Transforms as T
-from aggressive_ensemble.Augmentations import Augmentations as A
-
+from .Models.init_model import init_model
+from .Dataset.ImageDataset import ImageDataset
+from .Tranforms.TransformImage import TransformImage
 
 
 class Model:
@@ -73,8 +71,10 @@ class Model:
             num_classes = len(self.labels)
             feature_exctract = self.model_config["feature_extract"]
             pretrained = self.model_config['pretrained']
-            basic_model = BasicModels(name, num_classes, feature_exctract, use_pretrained=pretrained)
-            model, self.model_config["input_size"] = basic_model()
+            model, input_size, mean, std = init_model(name, num_classes, feature_exctract, use_pretrained=pretrained)
+            self.model_config["input_size"] = input_size
+            self.model_config['preprocessing']['normalization']['mean'] = mean
+            self.model_config['preprocessing']['normalization']['std'] = std
             model.to(self.device)
         print('Model ' + self.model_config['name'] + ' loaded')
         return model
@@ -83,22 +83,34 @@ class Model:
         preprocessing = self.model_config['preprocessing']
         augmentation = self.model_config['augmentation']
 
-        t = 'npretrained'
-        if self.model_config['pretrained']: t = 'pretrained'
+        t = 'pretrained=%s' % self.model_config['pretrained']
 
-        p = ''
-        if preprocessing["polygon_extraction"]: p += "Poly"
-        if preprocessing["ratation_to_horizontal"]: p += "Rot"
-        if preprocessing["edge_detection"]: p += "Edge"
-        if preprocessing["RGB_to_HSV"]: p += "HSV"
-        if preprocessing['normalization']: p += "Norm"
-        if p == '': p = 'None'
+        mean = preprocessing['normalization']['mean']
+        std = preprocessing['normalization']['std']
+        p = 'preproc='
+        if preprocessing["polygon_extraction"]:
+            p += "PolExtr,"
+        if preprocessing["ratation_to_horizontal"]:
+            p += "RotToH,"
+        if preprocessing["edge_detection"]:
+            p += "Edge,"
+        if preprocessing["RGB_to_HSV"]:
+            p += "HSV,"
+        if preprocessing['normalization']:
+            p += "Norm=mean%s,std%s" % (mean, std)
+        if p == '': p += 'None'
 
-        a = ''
-        if augmentation["random_flip"]: a += "RandFlip"
-        if augmentation["random_rotation"]: a += "RandRot"
-        if augmentation["change_RGB_channel"]: a += "ChannelSwitch"
-        if a == '': a = 'None'
+        a = 'aug='
+        if augmentation["random_vflip"]:
+            a += "RandVFlip,"
+        if augmentation["random_hflip"]:
+            a += "RandHFlip,"
+        if augmentation["random_rotation"]:
+            a += "RandRot,"
+        if augmentation["switch_RGB_channel"]:
+            a += "ChannelSwitch,"
+        if a == '':
+            a += 'None'
 
         save_name = self.model_config['name'] + '_' + self.model_config['criterion'] + '_' + p + '_' + a + '_' + t
         print(save_name)
@@ -122,26 +134,32 @@ class Model:
 
     def __create_datasets(self, ratio=0.8):
 
+        train_transform = TransformImage(input_size=self.model_config['input_size'],
+                                         mean=self.model_config['preprocessing']['normalization']['mean'],
+                                         std=self.model_config['preprocessing']['normalization']['std'],
+                                         preprocessing=self.model_config['preprocessing'],
+                                         augmentations=self.model_config['augmentation'])
+
+        test_transform = TransformImage(input_size=self.model_config['input_size'],
+                                        mean=self.model_config['preprocessing']['normalization']['mean'],
+                                        std=self.model_config['preprocessing']['normalization']['std'],
+                                        preprocessing=self.model_config['preprocessing'],
+                                        augmentations=None)
+
         train_dataset = ImageDataset(csv_file=self.train_csv,
                                      data_dir=self.data_dir,
                                      labels=self.labels,
-                                     transform=self.__transform(),
-                                     preprocessing=self.__preprocessing(),
-                                     augmentation=self.__augmentation())
+                                     transform=train_transform)
 
         val_dataset = ImageDataset(csv_file=self.train_csv,
                                    data_dir=self.data_dir,
                                    labels=self.labels,
-                                   transform=self.__transform(),
-                                   preprocessing=self.__preprocessing(),
-                                   augmentation=None)
+                                   transform=test_transform)
 
         test_dataset = ImageDataset(csv_file=self.test_csv,
                                     data_dir=self.data_dir,
                                     labels=self.labels,
-                                    transform=self.__transform(),
-                                    preprocessing=self.__preprocessing(),
-                                    augmentation=None)
+                                    transform=test_transform)
 
         l = int(len(train_dataset) * ratio)
         train_dataset = Subset(train_dataset, range(0, l))
@@ -152,70 +170,6 @@ class Model:
                    "test": test_dataset}
 
         return dataset
-
-    def __create_dataloaders(self):
-        dataloader = {"train": DataLoader(self.dataset["train"],
-                                          batch_size=self.model_config["batch_size"],
-                                          shuffle=False,
-                                          num_workers=self.model_config["num_workers"]),
-                      "val": DataLoader(self.dataset["val"],
-                                        batch_size=1,
-                                        shuffle=False,
-                                        num_workers=self.model_config["num_workers"]),
-                      "test": DataLoader(self.dataset["test"],
-                                         batch_size=1,
-                                         shuffle=False,
-                                         num_workers=self.model_config["num_workers"])}
-
-        return dataloader
-
-    def __preprocessing(self):
-
-        input_size = self.model_config['input_size']
-        preprocessing = self.model_config['preprocessing']
-        preproc = []
-        if preprocessing["polygon_extraction"]:
-            preproc.append(T.ExtractPolygon())
-        else:
-            preproc.append(T.Crop())
-
-        preproc.append(T.Rescale(output_size=(input_size, input_size)))
-        if preprocessing["ratation_to_horizontal"]:
-            preproc.append(T.RotateToHorizontal())
-        if preprocessing["edge_detection"]:
-            preproc.append(T.EdgeDetection())
-        if preprocessing["RGB_to_HSV"]:
-            preproc.append(T.ChangeColorspace("RGB", 'HSV'))
-        return transforms.Compose(preproc)
-
-    def __augmentation(self):
-
-        augmentation = self.model_config['augmentation']
-        aug = []
-        if augmentation["random_flip"]:
-            aug.append(A.RandomFlipLR())
-            aug.append(A.RandomFlipUD())
-        if augmentation["random_rotation"]:
-            aug.append(A.RandomRotate())
-        if augmentation["change_RGB_channel"]:
-            aug.append(A.SwitchChannelsRGB())
-
-        return transforms.Compose(aug)
-
-    def __transform(self):
-
-        input_size = self.model_config['input_size']
-
-        mean, std = [0, 0, 0], [1, 1, 1]
-        if self.model_config['preprocessing']['normalization']:
-            if self.model_config["name"] in ['xception', 'nasnet']:
-                mean, std = [0.5, 0.5, 0.5], [0.5, 0.5, 0.5]  # xception, nasnet
-            else:
-                mean, std = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]  # resnet
-
-        tsfrm = [T.Rescale(output_size=(input_size, input_size)), T.ToTensor(), T.Normalize(mean=mean, std=std)]
-
-        return transforms.Compose(tsfrm)
 
     def save(self):
         torch.save(self.model, self.models_dir + self.model_id + '.pth')

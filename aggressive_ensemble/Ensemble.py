@@ -49,7 +49,7 @@ class Ensemble:
     def __train(self):
         print("Training...")
         for model in self.models:
-            #self.models[model].show_random_images(10)
+            self.models[model].show_random_images(10)
             self.models[model].train()
 
     def __test(self):
