@@ -60,7 +60,8 @@ class ExtractPolygon(object):
     def __call__(self, sample):
         image, polygon, labels = sample['image'], sample['polygon'], sample['labels']
         p = Polygon(polygon)
-        img = p.extract_from_image(image)
+        t = iaa.Pad(px=5)
+        img = t(image=p.extract_from_image(image))
         return {'image': img, 'polygon': polygon, 'labels': labels}
 
 
@@ -75,7 +76,7 @@ class Crop(object):
         bottom = max(0, h - max(row[1] for row in polygon))
         right = max(0, w - max(row[0] for row in polygon))
 
-        t = iaa.Crop(px=(top, right, bottom, left))
+        t = iaa.Crop(px=(int(top), int(right), int(bottom), int(left)))
         img = t(image=image)
         for i in range(polygon.shape[0]):
             polygon[i][0] = polygon[i][0] - left
@@ -122,9 +123,9 @@ class Rescale(object):
         t = iaa.Resize((new_h, new_w))
         img = t(image=image)
 
-        # h and w are swapped for landmarks because for images,
-        # x and y axes are axis 1 and 0 respectively
-        polygon = polygon * [new_w / w, new_h / h]
+        for i in range(polygon.shape[0]):
+            polygon[i][0] = polygon[i][0] * (new_w / w)
+            polygon[i][1] = polygon[i][1] * (new_h / h)
 
         return {'image': img, 'polygon': polygon, 'labels': labels}
 
@@ -167,7 +168,7 @@ class RandomRotate(object):
     def __call__(self, sample):
         image, polygon, labels = sample['image'], sample['polygon'], sample['labels']
 
-        t = iaa.Sequential([iaa.Pad(px=0), iaa.Affine(rotate=(0, 360))])
+        t = iaa.Sequential([ iaa.Affine(rotate=(0, 360))])
         img = t(image=image)
 
         return {'image': img, 'polygon': polygon, 'labels': labels}
