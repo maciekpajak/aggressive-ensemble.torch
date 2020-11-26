@@ -87,7 +87,7 @@ class Model:
 
         mean = preprocessing['normalization']['mean']
         std = preprocessing['normalization']['std']
-        p = 'preproc='
+        p = 'preproc=('
         if preprocessing["polygon_extraction"]:
             p += "PolExtr,"
         if preprocessing["ratation_to_horizontal"]:
@@ -98,7 +98,9 @@ class Model:
             p += "HSV,"
         if preprocessing['normalization']:
             p += "Norm=mean%s,std%s" % (mean, std)
-        if p == '': p += 'None'
+        if p == 'preproc=(':
+            p += 'None'
+        p += ')'
 
         a = 'aug='
         if augmentation["random_vflip"]:
@@ -187,6 +189,8 @@ class Model:
                  'val': pd.DataFrame(columns=headers)}
         stats_path = {'train': self.stats_dir + self.model_id + '_train_stats.csv',
                       'val': self.stats_dir + self.model_id + '_val_stats.csv'}
+
+        epoch_score_history = [0, 0, 0]
         for epoch in range(max_epochs):
 
             for phase in ['train', 'val']:
@@ -243,6 +247,12 @@ class Model:
                 epoch_stats.extend(labels_score)
                 stats[phase] = stats[phase].append(pd.DataFrame([epoch_stats], columns=headers), ignore_index=True)
                 stats[phase].to_csv(path_or_buf=stats_path[phase], index=False)
+
+                if phase == 'train':
+                    epoch_score_history[epoch % 3] = score
+
+            if epoch_score_history[0] == epoch_score_history[1] and epoch_score_history[1] == epoch_score_history[2]:
+                break
         time_elapsed = time.time() - since
         print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
 
