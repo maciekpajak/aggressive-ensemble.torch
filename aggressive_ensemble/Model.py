@@ -43,18 +43,13 @@ class Model:
 
         self.dataset = self.__create_datasets()
 
-        self.dataloader = {"train": DataLoader(self.dataset["train"],
-                                               batch_size=model_config["batch_size"],
-                                               shuffle=False,
-                                               num_workers=model_config["num_workers"]),
-                           "val": DataLoader(self.dataset["val"],
-                                             batch_size=1,
-                                             shuffle=False,
-                                             num_workers=model_config["num_workers"]),
-                           "test": DataLoader(self.dataset["test"],
-                                              batch_size=1,
-                                              shuffle=False,
-                                              num_workers=model_config["num_workers"])}
+        params = {'batch_size': model_config["batch_size"],
+                  'shuffle': True,
+                  'num_workers': model_config["num_workers"]}
+
+        self.dataloader = {"train": DataLoader(self.dataset["train"], **params),
+                           "val": DataLoader(self.dataset["val"], **params),
+                           "test": DataLoader(self.dataset["test"], **params)}
 
         self.is_inception = (model_config["name"] == 'inception')
 
@@ -167,6 +162,7 @@ class Model:
         train_dataset = Subset(train_dataset, range(0, l))
         val_dataset = Subset(val_dataset, range(l, len(val_dataset)))
 
+        #test_dataset = Subset(test_dataset, range(0, 200))
         dataset = {"train": train_dataset,
                    "val": val_dataset,
                    "test": test_dataset}
@@ -206,8 +202,9 @@ class Model:
                                      always_stateful=True)
 
                 running_loss = 0.0
-                preds = torch.empty(0, 37).to(self.device)
-                trues = torch.empty(0, 37).to(self.device)
+
+                preds = pd.DataFrame(columns=self.labels)
+                trues = pd.DataFrame(columns=self.labels)
                 for i, (tag_id, inputs, labels) in enumerate(self.dataloader[phase], 0):
 
                     inputs, labels = inputs.to(self.device), labels.to(self.device)
@@ -230,11 +227,12 @@ class Model:
                             loss.backward()
                             self.optimizer.step()
 
-                    preds = torch.cat((preds, outputs), dim=0)
-                    trues = torch.cat((trues, labels), dim=0)
+                    preds = preds.append(pd.DataFrame(outputs.tolist(), columns=self.labels))
+                    trues = trues.append(pd.DataFrame(labels.tolist(), columns=self.labels))
 
                     running_loss += loss.item()
-                    score, _ = self.score(outputs, labels)
+                    score, _ = self.score(pd.DataFrame(outputs.tolist(), columns=self.labels),
+                                          pd.DataFrame(labels.tolist(), columns=self.labels))
                     # bar update
                     bar.update(i, values=[("loss", loss.item()), ('score', score)])
 
@@ -260,21 +258,19 @@ class Model:
 
     def test(self):
 
-        preds = []
-        tags = []
         bar = pkbar.Kbar(target=len(self.dataloader['test']), width=50, always_stateful=True)
+        answer = pd.DataFrame(columns=self.labels)
         with torch.no_grad():
             self.model.eval()
             for i, (tag_id, inputs, labels) in enumerate(self.dataloader['test'], 0):
                 inputs = inputs.to(self.device)
                 outputs = self.model(inputs)
-                preds.append(outputs.tolist()[0])
-                tags.append(tag_id.item())
+                answer = answer.append(pd.DataFrame(outputs.tolist(), columns=self.labels, index=tag_id.tolist()))
                 bar.update(i)
             bar.add(1)
-
-        answer = pd.DataFrame(preds, index=tags).astype(float)
+        answer.index.name = 'tag_id'
         answer = self.rank_preds(answer)
+        answer = answer.reset_index(drop=True)
         print(answer)
         return answer
 
@@ -292,8 +288,9 @@ class Model:
     @staticmethod
     def rank_preds(preds):
         rpreds = pd.DataFrame(preds)
-        for col in range(preds.shape[1]):
-            rpreds.iloc[:, col] = preds.sort_values(by=col, ascending=False).index
+        for col in preds.columns.values:
+            print()
+            rpreds.loc[:, col] = preds.sort_values(by=col, ascending=False).index
         return rpreds
 
     def show_random_images(self, num):
@@ -315,23 +312,18 @@ class Model:
         plt.show()
 
     @staticmethod
-    def score(preds, trues):
+    def score(preds: pd.DataFrame, trues: pd.DataFrame):
 
         labels_score = []
-        trues = trues.transpose(0, 1)
-        preds = preds.transpose(0, 1)
-
-        trues = trues.to('cpu').detach().numpy()
-        preds = preds.to('cpu').detach().numpy()
 
         score = 0.0
         for p, t in zip(preds, trues):
             ap = 0.0
-            if np.sum(t) != 0:
-                ap = average_precision_score(t, p)
+            if np.sum(trues[t]) != 0:
+                ap = average_precision_score(trues[t], preds[p])
             labels_score.append(ap)
             score += ap
 
-        score /= preds.shape[0]
+        score /= preds.shape[1]
 
         return score, labels_score

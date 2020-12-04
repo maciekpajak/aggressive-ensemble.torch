@@ -33,8 +33,8 @@ def init_model(model_name, num_classes, feature_extract, use_pretrained=True):
                                                 feature_extract=feature_extract,
                                                 use_pretrained=use_pretrained)
 
-    elif model_name == "inceptionV3":
-        model, input_size, mean, std = inceptionV3(num_classes=num_classes,
+    elif model_name == "inception":
+        model, input_size, mean, std = inception(num_classes=num_classes,
                                                    feature_extract=feature_extract,
                                                    use_pretrained=use_pretrained)
 

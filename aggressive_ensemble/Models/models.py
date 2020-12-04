@@ -4,7 +4,7 @@ import pretrainedmodels
 from torch import nn
 
 __all__ = ['resnet50', 'resnet152', 'alexnet', 'vgg', 'densenet',
-           'inceptionV3', 'xception', 'nasnetalarge', 'nasnetamobile']
+           'inception', 'xception', 'nasnetalarge', 'nasnetamobile']
 
 
 def set_parameter_requires_grad(model, feature_extracting):
@@ -15,7 +15,7 @@ def set_parameter_requires_grad(model, feature_extracting):
 
 def nasnetalarge(num_classes, feature_extract, use_pretrained=True):
 
-    model = pretrainedmodels.nasnetalarge(num_classes=num_classes, pretrained='imagenet')
+    model = pretrainedmodels.nasnetalarge(num_classes=1000, pretrained='imagenet')
     set_parameter_requires_grad(model, feature_extract)
     num_ftrs = model.last_linear.in_features
     model.last_linear = nn.Sequential(
@@ -28,7 +28,7 @@ def nasnetalarge(num_classes, feature_extract, use_pretrained=True):
 
 
 def nasnetamobile(num_classes, feature_extract, use_pretrained=True):
-    model = pretrainedmodels.nasnetamobile(num_classes=num_classes, pretrained='imagenet')
+    model = pretrainedmodels.nasnetamobile(num_classes=1000, pretrained='imagenet')
     set_parameter_requires_grad(model, feature_extract)
     num_ftrs = model.last_linear.in_features
     model.last_linear = nn.Sequential(
@@ -42,7 +42,7 @@ def nasnetamobile(num_classes, feature_extract, use_pretrained=True):
 
 def xception(num_classes, feature_extract, use_pretrained=True):
 
-    model = pretrainedmodels.xception(num_classes=num_classes, pretrained='imagenet')
+    model = pretrainedmodels.xception(num_classes=1000, pretrained='imagenet')
     set_parameter_requires_grad(model, feature_extract)
     num_ftrs = model.last_linear.in_features
     model.last_linear = nn.Sequential(
@@ -54,7 +54,7 @@ def xception(num_classes, feature_extract, use_pretrained=True):
     return model, input_size, mean, std
 
 
-def inceptionV3(num_classes, feature_extract, use_pretrained=True):
+def inception(num_classes, feature_extract, use_pretrained=True):
 
     model = models.inception_v3(pretrained=use_pretrained)
     set_parameter_requires_grad(model, feature_extract)
