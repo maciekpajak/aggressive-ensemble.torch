@@ -1,0 +1,21 @@
+======
+Models
+======
+
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
+
+    models
+
+Model Init
+==========
+.. automodule:: aggressive_ensemble.Models.init_model
+   :members:
+
+Models
+=======
+.. automodule:: aggressive_ensemble.Models.models
+   :members:
+

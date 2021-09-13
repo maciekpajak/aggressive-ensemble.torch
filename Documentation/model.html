@@ -1,0 +1,364 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Model &mdash; Aggressive Ensemble  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Dataset" href="dataset.html" />
+    <link rel="prev" title="Ensemble" href="ensemble.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Aggressive Ensemble
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Ensemble:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="ensemble.html">Ensemble</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Model</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#id1">Model</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="dataset.html">Dataset</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Implemented models:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="models.html">Models</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Implemented transforms:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="transforms.html">Transforms</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Aggressive Ensemble</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Model</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/model.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="model">
+<h1>Model<a class="headerlink" href="#model" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="id1">
+<h2>Model<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-aggressive_ensemble.Model"></span><dl class="py class">
+<dt id="aggressive_ensemble.Model.Model">
+<em class="property">class </em><code class="sig-prename descclassname">aggressive_ensemble.Model.</code><code class="sig-name descname">Model</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">csv</span></em>, <em class="sig-param"><span class="n">dir</span></em>, <em class="sig-param"><span class="n">labels</span></em>, <em class="sig-param"><span class="n">model_config</span></em>, <em class="sig-param"><span class="n">device</span></em><span class="sig-paren">)</span><a class="headerlink" href="#aggressive_ensemble.Model.Model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Klasa reprezentująca pojedynczy model sieci neuronowej.
+Oprócz samego modelu przechowuje wymagane atrybuty</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>csv</strong> (<em>dict</em>) – device</p></li>
+<li><p><strong>dir</strong> (<em>dict</em>) – ścieżki do potrzebnych folderów</p></li>
+<li><p><strong>labels</strong> (<em>list</em>) – lista możliwych etykiet</p></li>
+<li><p><strong>model_config</strong> (<em>dict</em>) – konfiguracja modelu</p></li>
+<li><p><strong>device</strong> (<em>string</em>) – gpu or cpu</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="aggressive_ensemble.Model.Model.__init__">
+<code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">csv</span></em>, <em class="sig-param"><span class="n">dir</span></em>, <em class="sig-param"><span class="n">labels</span></em>, <em class="sig-param"><span class="n">model_config</span></em>, <em class="sig-param"><span class="n">device</span></em><span class="sig-paren">)</span><a class="headerlink" href="#aggressive_ensemble.Model.Model.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Konstruktor klasy</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>csv</strong> (<em>dict</em>) – plik csv z danymi</p></li>
+<li><p><strong>dir</strong> (<em>dict</em>) – ścieżki do potrzebnych folderów</p></li>
+<li><p><strong>labels</strong> (<em>list</em>) – lista możliwych etykiet</p></li>
+<li><p><strong>model_config</strong> (<em>dict</em>) – konfiguracja modelu</p></li>
+<li><p><strong>device</strong> (<em>string</em>) – Rodziaj używanego procesora: gpu albo cpu</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="aggressive_ensemble.Model.Model.save">
+<code class="sig-name descname">save</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">path</span></em><span class="sig-paren">)</span><a class="headerlink" href="#aggressive_ensemble.Model.Model.save" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>path</strong> (<em>string</em>) – Ścieżka do zapisania modelu</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="aggressive_ensemble.Model.Model.train">
+<code class="sig-name descname">train</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#aggressive_ensemble.Model.Model.train" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Przetrenowany model</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="aggressive_ensemble.Model.Model.test">
+<code class="sig-name descname">test</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#aggressive_ensemble.Model.Model.test" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Obiekt z odpowiedziami modelu na testowy zbiór danych</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>pd.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="aggressive_ensemble.Model.Model.set_criterion">
+<em class="property">static </em><code class="sig-name descname">set_criterion</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">criterion_name</span></em><span class="sig-paren">)</span><a class="headerlink" href="#aggressive_ensemble.Model.Model.set_criterion" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>criterion_name</strong> (<em>string</em>) – Nazwa kryterium, którego będzie używać model sieci</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Obiekt wybranego kryterium</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="aggressive_ensemble.Model.Model.rank_preds">
+<em class="property">static </em><code class="sig-name descname">rank_preds</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">preds</span></em><span class="sig-paren">)</span> &#x2192; pandas.core.frame.DataFrame<a class="headerlink" href="#aggressive_ensemble.Model.Model.rank_preds" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>preds</strong> (<em>pd.DataFrame</em>) – Przewidywane wartości</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Uszeregowane przewiywane wratości od najbardziej prawdopodobnych do najmniej</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>pd.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="aggressive_ensemble.Model.Model.show_random_images">
+<code class="sig-name descname">show_random_images</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">num</span></em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#aggressive_ensemble.Model.Model.show_random_images" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>num</strong> (<em>int</em>) – Liczba obrazów do wyświetlenia</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="aggressive_ensemble.Model.Model.score">
+<em class="property">static </em><code class="sig-name descname">score</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">preds</span><span class="p">:</span> <span class="n">pandas.core.frame.DataFrame</span></em>, <em class="sig-param"><span class="n">trues</span><span class="p">:</span> <span class="n">pandas.core.frame.DataFrame</span></em><span class="sig-paren">)</span><a class="headerlink" href="#aggressive_ensemble.Model.Model.score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Funkcja obliczająca wynik modelu sieci neuronowej</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>preds</strong> (<em>pd.DataFrame</em>) – Wartości przewidywane przez model</p></li>
+<li><p><strong>trues</strong> (<em>pd.DataFrame</em>) – Wartości prawdziwe</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Ogólny wynik modelu oraz wyniki dla każdej z cech w postaci listy</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>float, list</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="dataset.html" class="btn btn-neutral float-right" title="Dataset" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="ensemble.html" class="btn btn-neutral float-left" title="Ensemble" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2021, Maciej Pajak.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

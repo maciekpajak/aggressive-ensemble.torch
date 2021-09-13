@@ -1,0 +1,40 @@
+======
+Models
+======
+
+Nasnet large
+============
+.. autofunction:: aggressive_ensemble.Models.models.nasnetalarge
+
+Nasnet mobile
+=============
+.. autofunction:: aggressive_ensemble.Models.models.nasnetamobile
+
+Xception
+========
+.. autofunction:: aggressive_ensemble.Models.models.xception
+
+Inception V3
+============
+.. autofunction:: aggressive_ensemble.Models.models.inception
+
+Densenet
+========
+.. autofunction:: aggressive_ensemble.Models.models.densenet
+
+VGG
+===
+.. autofunction:: aggressive_ensemble.Models.models.vgg
+
+Alexnet
+=======
+.. autofunction:: aggressive_ensemble.Models.models.alexnet
+
+Resnet50
+========
+.. autofunction:: aggressive_ensemble.Models.models.resnet50
+
+Resnet152
+=========
+.. autofunction:: aggressive_ensemble.Models.models.resnet152
+

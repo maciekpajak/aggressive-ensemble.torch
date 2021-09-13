@@ -7,9 +7,30 @@ from pathlib import Path
 
 
 class ImageDataset(Dataset):
+    """Klasa reprezentująca zbiór danych
+
+    :param df:
+    :type df:
+    :param data_dir:
+    :type data_dir:
+    :param labels:
+    :type labels:
+    :param transform:
+    :type transform:
+    """
 
     def __init__(self, csv_file, data_dir, labels, transform=None):
+        """
 
+        :param csv_file:
+        :type csv_file:
+        :param data_dir:
+        :type data_dir:
+        :param labels:
+        :type labels:
+        :param transform:
+        :type transform:
+        """
         self.df = pd.get_dummies(pd.read_csv(csv_file))
         self.data_dir = data_dir
         self.labels = labels
@@ -17,10 +38,21 @@ class ImageDataset(Dataset):
         self.df = self.df.replace(to_replace=-1, value=0)
 
     def __len__(self):
+        """
+
+        :return: Wielkość zbioru danych
+        :rtype: int
+        """
         return len(self.df)
 
     def __getitem__(self, idx):
+        """
 
+        :param idx: Indeks próbki
+        :type idx:
+        :return:
+        :rtype:
+        """
         if torch.is_tensor(idx):
             idx = idx.tolist()
 

@@ -1,0 +1,544 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Models &#8212; Aggressive Ensemble  documentation</title>
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="models">
+<h1>Models<a class="headerlink" href="#models" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+</div>
+<div class="section" id="module-aggressive_ensemble.Models.init_model">
+<span id="model-init"></span><h2>Model Init<a class="headerlink" href="#module-aggressive_ensemble.Models.init_model" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="aggressive_ensemble.Models.init_model.alexnet">
+<code class="sig-prename descclassname">aggressive_ensemble.Models.init_model.</code><code class="sig-name descname">alexnet</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">num_classes</span></em>, <em class="sig-param"><span class="n">feature_extract</span></em>, <em class="sig-param"><span class="n">use_pretrained</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#aggressive_ensemble.Models.init_model.alexnet" title="Permalink to this definition">¶</a></dt>
+<dd><p>Funkcja zwracająca model alexnet</p>
+<dl class="simple">
+<dt>num_classes<span class="classifier">int</span></dt><dd><p>liczba szukanych cech</p>
+</dd>
+<dt>feature_extract<span class="classifier">bool</span></dt><dd><p>czy ekstrachować cechy</p>
+</dd>
+<dt>use_pretrained<span class="classifier">bool</span></dt><dd><p>czy używać wstępnie przetrenowanego modelu</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>model :</dt><dd><p>wygenerowny model</p>
+</dd>
+<dt>input_size: int</dt><dd><p>wielkość wejścia modelu</p>
+</dd>
+<dt>mean<span class="classifier">float</span></dt><dd><p>sugerowana średnia do normalizacji</p>
+</dd>
+<dt>std<span class="classifier">float</span></dt><dd><p>sugerowane odchylenie standardowe do normalizacji</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="aggressive_ensemble.Models.init_model.densenet">
+<code class="sig-prename descclassname">aggressive_ensemble.Models.init_model.</code><code class="sig-name descname">densenet</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">num_classes</span></em>, <em class="sig-param"><span class="n">feature_extract</span></em>, <em class="sig-param"><span class="n">use_pretrained</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#aggressive_ensemble.Models.init_model.densenet" title="Permalink to this definition">¶</a></dt>
+<dd><p>Funkcja zwracająca model densenet</p>
+<dl class="simple">
+<dt>num_classes<span class="classifier">int</span></dt><dd><p>liczba szukanych cech</p>
+</dd>
+<dt>feature_extract<span class="classifier">bool</span></dt><dd><p>czy ekstrachować cechy</p>
+</dd>
+<dt>use_pretrained<span class="classifier">bool</span></dt><dd><p>czy używać wstępnie przetrenowanego modelu</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>model :</dt><dd><p>wygenerowny model</p>
+</dd>
+<dt>input_size: int</dt><dd><p>wielkość wejścia modelu</p>
+</dd>
+<dt>mean<span class="classifier">float</span></dt><dd><p>sugerowana średnia do normalizacji</p>
+</dd>
+<dt>std<span class="classifier">float</span></dt><dd><p>sugerowane odchylenie standardowe do normalizacji</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="aggressive_ensemble.Models.init_model.inception">
+<code class="sig-prename descclassname">aggressive_ensemble.Models.init_model.</code><code class="sig-name descname">inception</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">num_classes</span></em>, <em class="sig-param"><span class="n">feature_extract</span></em>, <em class="sig-param"><span class="n">use_pretrained</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#aggressive_ensemble.Models.init_model.inception" title="Permalink to this definition">¶</a></dt>
+<dd><p>Funkcja zwracająca model inception_v3</p>
+<dl class="simple">
+<dt>num_classes<span class="classifier">int</span></dt><dd><p>liczba szukanych cech</p>
+</dd>
+<dt>feature_extract<span class="classifier">bool</span></dt><dd><p>czy ekstrachować cechy</p>
+</dd>
+<dt>use_pretrained<span class="classifier">bool</span></dt><dd><p>czy używać wstępnie przetrenowanego modelu</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>model :</dt><dd><p>wygenerowny model</p>
+</dd>
+<dt>input_size: int</dt><dd><p>wielkość wejścia modelu</p>
+</dd>
+<dt>mean<span class="classifier">float</span></dt><dd><p>sugerowana średnia do normalizacji</p>
+</dd>
+<dt>std<span class="classifier">float</span></dt><dd><p>sugerowane odchylenie standardowe do normalizacji</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="aggressive_ensemble.Models.init_model.nasnetalarge">
+<code class="sig-prename descclassname">aggressive_ensemble.Models.init_model.</code><code class="sig-name descname">nasnetalarge</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">num_classes</span></em>, <em class="sig-param"><span class="n">feature_extract</span></em>, <em class="sig-param"><span class="n">use_pretrained</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#aggressive_ensemble.Models.init_model.nasnetalarge" title="Permalink to this definition">¶</a></dt>
+<dd><p>Funkcja zwracająca model nasnet_large</p>
+<dl class="simple">
+<dt>num_classes<span class="classifier">int</span></dt><dd><p>liczba szukanych cech</p>
+</dd>
+<dt>feature_extract<span class="classifier">bool</span></dt><dd><p>czy ekstrachować cechy</p>
+</dd>
+<dt>use_pretrained<span class="classifier">bool</span></dt><dd><p>czy używać wstępnie przetrenowanego modelu</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>model :</dt><dd><p>wygenerowny model</p>
+</dd>
+<dt>input_size: int</dt><dd><p>wielkość wejścia modelu</p>
+</dd>
+<dt>mean<span class="classifier">float</span></dt><dd><p>sugerowana średnia do normalizacji</p>
+</dd>
+<dt>std<span class="classifier">float</span></dt><dd><p>sugerowane odchylenie standardowe do normalizacji</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="aggressive_ensemble.Models.init_model.nasnetamobile">
+<code class="sig-prename descclassname">aggressive_ensemble.Models.init_model.</code><code class="sig-name descname">nasnetamobile</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">num_classes</span></em>, <em class="sig-param"><span class="n">feature_extract</span></em>, <em class="sig-param"><span class="n">use_pretrained</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#aggressive_ensemble.Models.init_model.nasnetamobile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Funkcja zwracająca model nasnet_mobile</p>
+<dl class="simple">
+<dt>num_classes<span class="classifier">int</span></dt><dd><p>liczba szukanych cech</p>
+</dd>
+<dt>feature_extract<span class="classifier">bool</span></dt><dd><p>czy ekstrachować cechy</p>
+</dd>
+<dt>use_pretrained<span class="classifier">bool</span></dt><dd><p>czy używać wstępnie przetrenowanego modelu</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>model :</dt><dd><p>wygenerowny model</p>
+</dd>
+<dt>input_size: int</dt><dd><p>wielkość wejścia modelu</p>
+</dd>
+<dt>mean<span class="classifier">float</span></dt><dd><p>sugerowana średnia do normalizacji</p>
+</dd>
+<dt>std<span class="classifier">float</span></dt><dd><p>sugerowane odchylenie standardowe do normalizacji</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="aggressive_ensemble.Models.init_model.resnet152">
+<code class="sig-prename descclassname">aggressive_ensemble.Models.init_model.</code><code class="sig-name descname">resnet152</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">num_classes</span></em>, <em class="sig-param"><span class="n">feature_extract</span></em>, <em class="sig-param"><span class="n">use_pretrained</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#aggressive_ensemble.Models.init_model.resnet152" title="Permalink to this definition">¶</a></dt>
+<dd><p>Funkcja zwracająca model renset152</p>
+<dl class="simple">
+<dt>num_classes<span class="classifier">int</span></dt><dd><p>liczba szukanych cech</p>
+</dd>
+<dt>feature_extract<span class="classifier">bool</span></dt><dd><p>czy ekstrachować cechy</p>
+</dd>
+<dt>use_pretrained<span class="classifier">bool</span></dt><dd><p>czy używać wstępnie przetrenowanego modelu</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>model :</dt><dd><p>wygenerowny model</p>
+</dd>
+<dt>input_size: int</dt><dd><p>wielkość wejścia modelu</p>
+</dd>
+<dt>mean<span class="classifier">float</span></dt><dd><p>sugerowana średnia do normalizacji</p>
+</dd>
+<dt>std<span class="classifier">float</span></dt><dd><p>sugerowane odchylenie standardowe do normalizacji</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="aggressive_ensemble.Models.init_model.resnet50">
+<code class="sig-prename descclassname">aggressive_ensemble.Models.init_model.</code><code class="sig-name descname">resnet50</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">num_classes</span></em>, <em class="sig-param"><span class="n">feature_extract</span></em>, <em class="sig-param"><span class="n">use_pretrained</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#aggressive_ensemble.Models.init_model.resnet50" title="Permalink to this definition">¶</a></dt>
+<dd><p>Funkcja zwracająca model renset50</p>
+<dl class="simple">
+<dt>num_classes<span class="classifier">int</span></dt><dd><p>liczba szukanych cech</p>
+</dd>
+<dt>feature_extract<span class="classifier">bool</span></dt><dd><p>czy ekstrachować cechy</p>
+</dd>
+<dt>use_pretrained<span class="classifier">bool</span></dt><dd><p>czy używać wstępnie przetrenowanego modelu</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>model :</dt><dd><p>wygenerowny model</p>
+</dd>
+<dt>input_size: int</dt><dd><p>wielkość wejścia modelu</p>
+</dd>
+<dt>mean<span class="classifier">float</span></dt><dd><p>sugerowana średnia do normalizacji</p>
+</dd>
+<dt>std<span class="classifier">float</span></dt><dd><p>sugerowane odchylenie standardowe do normalizacji</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="aggressive_ensemble.Models.init_model.vgg">
+<code class="sig-prename descclassname">aggressive_ensemble.Models.init_model.</code><code class="sig-name descname">vgg</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">num_classes</span></em>, <em class="sig-param"><span class="n">feature_extract</span></em>, <em class="sig-param"><span class="n">use_pretrained</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#aggressive_ensemble.Models.init_model.vgg" title="Permalink to this definition">¶</a></dt>
+<dd><p>Funkcja zwracająca model vgg11</p>
+<dl class="simple">
+<dt>num_classes<span class="classifier">int</span></dt><dd><p>liczba szukanych cech</p>
+</dd>
+<dt>feature_extract<span class="classifier">bool</span></dt><dd><p>czy ekstrachować cechy</p>
+</dd>
+<dt>use_pretrained<span class="classifier">bool</span></dt><dd><p>czy używać wstępnie przetrenowanego modelu</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>model :</dt><dd><p>wygenerowny model</p>
+</dd>
+<dt>input_size: int</dt><dd><p>wielkość wejścia modelu</p>
+</dd>
+<dt>mean<span class="classifier">float</span></dt><dd><p>sugerowana średnia do normalizacji</p>
+</dd>
+<dt>std<span class="classifier">float</span></dt><dd><p>sugerowane odchylenie standardowe do normalizacji</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="aggressive_ensemble.Models.init_model.xception">
+<code class="sig-prename descclassname">aggressive_ensemble.Models.init_model.</code><code class="sig-name descname">xception</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">num_classes</span></em>, <em class="sig-param"><span class="n">feature_extract</span></em>, <em class="sig-param"><span class="n">use_pretrained</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#aggressive_ensemble.Models.init_model.xception" title="Permalink to this definition">¶</a></dt>
+<dd><p>Funkcja zwracająca model xception</p>
+<dl class="simple">
+<dt>num_classes<span class="classifier">int</span></dt><dd><p>liczba szukanych cech</p>
+</dd>
+<dt>feature_extract<span class="classifier">bool</span></dt><dd><p>czy ekstrachować cechy</p>
+</dd>
+<dt>use_pretrained<span class="classifier">bool</span></dt><dd><p>czy używać wstępnie przetrenowanego modelu</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>model :</dt><dd><p>wygenerowny model</p>
+</dd>
+<dt>input_size: int</dt><dd><p>wielkość wejścia modelu</p>
+</dd>
+<dt>mean<span class="classifier">float</span></dt><dd><p>sugerowana średnia do normalizacji</p>
+</dd>
+<dt>std<span class="classifier">float</span></dt><dd><p>sugerowane odchylenie standardowe do normalizacji</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="id1">
+<h2>Models<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-aggressive_ensemble.Models.models"></span><dl class="py function">
+<dt id="aggressive_ensemble.Models.models.alexnet">
+<code class="sig-prename descclassname">aggressive_ensemble.Models.models.</code><code class="sig-name descname">alexnet</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">num_classes</span></em>, <em class="sig-param"><span class="n">feature_extract</span></em>, <em class="sig-param"><span class="n">use_pretrained</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#aggressive_ensemble.Models.models.alexnet" title="Permalink to this definition">¶</a></dt>
+<dd><p>Funkcja zwracająca model alexnet</p>
+<dl class="simple">
+<dt>num_classes<span class="classifier">int</span></dt><dd><p>liczba szukanych cech</p>
+</dd>
+<dt>feature_extract<span class="classifier">bool</span></dt><dd><p>czy ekstrachować cechy</p>
+</dd>
+<dt>use_pretrained<span class="classifier">bool</span></dt><dd><p>czy używać wstępnie przetrenowanego modelu</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>model :</dt><dd><p>wygenerowny model</p>
+</dd>
+<dt>input_size: int</dt><dd><p>wielkość wejścia modelu</p>
+</dd>
+<dt>mean<span class="classifier">float</span></dt><dd><p>sugerowana średnia do normalizacji</p>
+</dd>
+<dt>std<span class="classifier">float</span></dt><dd><p>sugerowane odchylenie standardowe do normalizacji</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="aggressive_ensemble.Models.models.densenet">
+<code class="sig-prename descclassname">aggressive_ensemble.Models.models.</code><code class="sig-name descname">densenet</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">num_classes</span></em>, <em class="sig-param"><span class="n">feature_extract</span></em>, <em class="sig-param"><span class="n">use_pretrained</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#aggressive_ensemble.Models.models.densenet" title="Permalink to this definition">¶</a></dt>
+<dd><p>Funkcja zwracająca model densenet</p>
+<dl class="simple">
+<dt>num_classes<span class="classifier">int</span></dt><dd><p>liczba szukanych cech</p>
+</dd>
+<dt>feature_extract<span class="classifier">bool</span></dt><dd><p>czy ekstrachować cechy</p>
+</dd>
+<dt>use_pretrained<span class="classifier">bool</span></dt><dd><p>czy używać wstępnie przetrenowanego modelu</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>model :</dt><dd><p>wygenerowny model</p>
+</dd>
+<dt>input_size: int</dt><dd><p>wielkość wejścia modelu</p>
+</dd>
+<dt>mean<span class="classifier">float</span></dt><dd><p>sugerowana średnia do normalizacji</p>
+</dd>
+<dt>std<span class="classifier">float</span></dt><dd><p>sugerowane odchylenie standardowe do normalizacji</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="aggressive_ensemble.Models.models.inception">
+<code class="sig-prename descclassname">aggressive_ensemble.Models.models.</code><code class="sig-name descname">inception</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">num_classes</span></em>, <em class="sig-param"><span class="n">feature_extract</span></em>, <em class="sig-param"><span class="n">use_pretrained</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#aggressive_ensemble.Models.models.inception" title="Permalink to this definition">¶</a></dt>
+<dd><p>Funkcja zwracająca model inception_v3</p>
+<dl class="simple">
+<dt>num_classes<span class="classifier">int</span></dt><dd><p>liczba szukanych cech</p>
+</dd>
+<dt>feature_extract<span class="classifier">bool</span></dt><dd><p>czy ekstrachować cechy</p>
+</dd>
+<dt>use_pretrained<span class="classifier">bool</span></dt><dd><p>czy używać wstępnie przetrenowanego modelu</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>model :</dt><dd><p>wygenerowny model</p>
+</dd>
+<dt>input_size: int</dt><dd><p>wielkość wejścia modelu</p>
+</dd>
+<dt>mean<span class="classifier">float</span></dt><dd><p>sugerowana średnia do normalizacji</p>
+</dd>
+<dt>std<span class="classifier">float</span></dt><dd><p>sugerowane odchylenie standardowe do normalizacji</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="aggressive_ensemble.Models.models.nasnetalarge">
+<code class="sig-prename descclassname">aggressive_ensemble.Models.models.</code><code class="sig-name descname">nasnetalarge</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">num_classes</span></em>, <em class="sig-param"><span class="n">feature_extract</span></em>, <em class="sig-param"><span class="n">use_pretrained</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#aggressive_ensemble.Models.models.nasnetalarge" title="Permalink to this definition">¶</a></dt>
+<dd><p>Funkcja zwracająca model nasnet_large</p>
+<dl class="simple">
+<dt>num_classes<span class="classifier">int</span></dt><dd><p>liczba szukanych cech</p>
+</dd>
+<dt>feature_extract<span class="classifier">bool</span></dt><dd><p>czy ekstrachować cechy</p>
+</dd>
+<dt>use_pretrained<span class="classifier">bool</span></dt><dd><p>czy używać wstępnie przetrenowanego modelu</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>model :</dt><dd><p>wygenerowny model</p>
+</dd>
+<dt>input_size: int</dt><dd><p>wielkość wejścia modelu</p>
+</dd>
+<dt>mean<span class="classifier">float</span></dt><dd><p>sugerowana średnia do normalizacji</p>
+</dd>
+<dt>std<span class="classifier">float</span></dt><dd><p>sugerowane odchylenie standardowe do normalizacji</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="aggressive_ensemble.Models.models.nasnetamobile">
+<code class="sig-prename descclassname">aggressive_ensemble.Models.models.</code><code class="sig-name descname">nasnetamobile</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">num_classes</span></em>, <em class="sig-param"><span class="n">feature_extract</span></em>, <em class="sig-param"><span class="n">use_pretrained</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#aggressive_ensemble.Models.models.nasnetamobile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Funkcja zwracająca model nasnet_mobile</p>
+<dl class="simple">
+<dt>num_classes<span class="classifier">int</span></dt><dd><p>liczba szukanych cech</p>
+</dd>
+<dt>feature_extract<span class="classifier">bool</span></dt><dd><p>czy ekstrachować cechy</p>
+</dd>
+<dt>use_pretrained<span class="classifier">bool</span></dt><dd><p>czy używać wstępnie przetrenowanego modelu</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>model :</dt><dd><p>wygenerowny model</p>
+</dd>
+<dt>input_size: int</dt><dd><p>wielkość wejścia modelu</p>
+</dd>
+<dt>mean<span class="classifier">float</span></dt><dd><p>sugerowana średnia do normalizacji</p>
+</dd>
+<dt>std<span class="classifier">float</span></dt><dd><p>sugerowane odchylenie standardowe do normalizacji</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="aggressive_ensemble.Models.models.resnet152">
+<code class="sig-prename descclassname">aggressive_ensemble.Models.models.</code><code class="sig-name descname">resnet152</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">num_classes</span></em>, <em class="sig-param"><span class="n">feature_extract</span></em>, <em class="sig-param"><span class="n">use_pretrained</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#aggressive_ensemble.Models.models.resnet152" title="Permalink to this definition">¶</a></dt>
+<dd><p>Funkcja zwracająca model renset152</p>
+<dl class="simple">
+<dt>num_classes<span class="classifier">int</span></dt><dd><p>liczba szukanych cech</p>
+</dd>
+<dt>feature_extract<span class="classifier">bool</span></dt><dd><p>czy ekstrachować cechy</p>
+</dd>
+<dt>use_pretrained<span class="classifier">bool</span></dt><dd><p>czy używać wstępnie przetrenowanego modelu</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>model :</dt><dd><p>wygenerowny model</p>
+</dd>
+<dt>input_size: int</dt><dd><p>wielkość wejścia modelu</p>
+</dd>
+<dt>mean<span class="classifier">float</span></dt><dd><p>sugerowana średnia do normalizacji</p>
+</dd>
+<dt>std<span class="classifier">float</span></dt><dd><p>sugerowane odchylenie standardowe do normalizacji</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="aggressive_ensemble.Models.models.resnet50">
+<code class="sig-prename descclassname">aggressive_ensemble.Models.models.</code><code class="sig-name descname">resnet50</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">num_classes</span></em>, <em class="sig-param"><span class="n">feature_extract</span></em>, <em class="sig-param"><span class="n">use_pretrained</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#aggressive_ensemble.Models.models.resnet50" title="Permalink to this definition">¶</a></dt>
+<dd><p>Funkcja zwracająca model renset50</p>
+<dl class="simple">
+<dt>num_classes<span class="classifier">int</span></dt><dd><p>liczba szukanych cech</p>
+</dd>
+<dt>feature_extract<span class="classifier">bool</span></dt><dd><p>czy ekstrachować cechy</p>
+</dd>
+<dt>use_pretrained<span class="classifier">bool</span></dt><dd><p>czy używać wstępnie przetrenowanego modelu</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>model :</dt><dd><p>wygenerowny model</p>
+</dd>
+<dt>input_size: int</dt><dd><p>wielkość wejścia modelu</p>
+</dd>
+<dt>mean<span class="classifier">float</span></dt><dd><p>sugerowana średnia do normalizacji</p>
+</dd>
+<dt>std<span class="classifier">float</span></dt><dd><p>sugerowane odchylenie standardowe do normalizacji</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="aggressive_ensemble.Models.models.vgg">
+<code class="sig-prename descclassname">aggressive_ensemble.Models.models.</code><code class="sig-name descname">vgg</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">num_classes</span></em>, <em class="sig-param"><span class="n">feature_extract</span></em>, <em class="sig-param"><span class="n">use_pretrained</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#aggressive_ensemble.Models.models.vgg" title="Permalink to this definition">¶</a></dt>
+<dd><p>Funkcja zwracająca model vgg11</p>
+<dl class="simple">
+<dt>num_classes<span class="classifier">int</span></dt><dd><p>liczba szukanych cech</p>
+</dd>
+<dt>feature_extract<span class="classifier">bool</span></dt><dd><p>czy ekstrachować cechy</p>
+</dd>
+<dt>use_pretrained<span class="classifier">bool</span></dt><dd><p>czy używać wstępnie przetrenowanego modelu</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>model :</dt><dd><p>wygenerowny model</p>
+</dd>
+<dt>input_size: int</dt><dd><p>wielkość wejścia modelu</p>
+</dd>
+<dt>mean<span class="classifier">float</span></dt><dd><p>sugerowana średnia do normalizacji</p>
+</dd>
+<dt>std<span class="classifier">float</span></dt><dd><p>sugerowane odchylenie standardowe do normalizacji</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="aggressive_ensemble.Models.models.xception">
+<code class="sig-prename descclassname">aggressive_ensemble.Models.models.</code><code class="sig-name descname">xception</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">num_classes</span></em>, <em class="sig-param"><span class="n">feature_extract</span></em>, <em class="sig-param"><span class="n">use_pretrained</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="headerlink" href="#aggressive_ensemble.Models.models.xception" title="Permalink to this definition">¶</a></dt>
+<dd><p>Funkcja zwracająca model xception</p>
+<dl class="simple">
+<dt>num_classes<span class="classifier">int</span></dt><dd><p>liczba szukanych cech</p>
+</dd>
+<dt>feature_extract<span class="classifier">bool</span></dt><dd><p>czy ekstrachować cechy</p>
+</dd>
+<dt>use_pretrained<span class="classifier">bool</span></dt><dd><p>czy używać wstępnie przetrenowanego modelu</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>model :</dt><dd><p>wygenerowny model</p>
+</dd>
+<dt>input_size: int</dt><dd><p>wielkość wejścia modelu</p>
+</dd>
+<dt>mean<span class="classifier">float</span></dt><dd><p>sugerowana średnia do normalizacji</p>
+</dd>
+<dt>std<span class="classifier">float</span></dt><dd><p>sugerowane odchylenie standardowe do normalizacji</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">Aggressive Ensemble</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">Documentation</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2021, Maciej Pajak.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.4.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../_sources/Documentation/source/models.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

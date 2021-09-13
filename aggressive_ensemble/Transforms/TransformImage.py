@@ -1,18 +1,30 @@
 from torchvision import transforms
 
-from aggressive_ensemble.Tranforms.Transforms import *
+from aggressive_ensemble.Transforms.Transforms import *
 
 
 class TransformImage(object):
+    """
+
+    """
+    transform = []
 
     def __init__(self, input_size, mean, std, preprocessing=None, augmentations=None):
+        """
 
+        Parameters
+        ----------
+        input_size :
+        mean :
+        std :
+        preprocessing :
+        augmentations :
+        """
         self.input_size = input_size
         self.mean = mean
         self.std = std
 
-        transform = []
-
+        self.transform = []
         if preprocessing:
             preproc = []
             if preprocessing["polygon_extraction"]:
@@ -28,7 +40,7 @@ class TransformImage(object):
             if preprocessing["RGB_to_HSV"]:
                 preproc.append(ChangeColorspace("RGB", 'HSV'))
 
-            transform.extend(preproc)
+            self.transform.extend(preproc)
 
         if augmentations:
             aug = []
@@ -41,13 +53,16 @@ class TransformImage(object):
             if augmentations["switch_RGB_channel"]:
                 aug.append(SwitchRGBChannels())
 
-            transform.extend(aug)
+            self.transform.extend(aug)
 
-        transform.append(Rescale(output_size=(self.input_size, self.input_size)))
-        transform.append(ToTensor())
-        transform.append(Normalize(mean=self.mean, std=self.std))
+        self.transform.append(Rescale(output_size=(self.input_size, self.input_size)))
+        self.transform.append(ToTensor())
+        self.transform.append(Normalize(mean=self.mean, std=self.std))
 
-        self.transform = transforms.Compose(transform)
+        self.transformCompose = transforms.Compose(self.transform)
 
     def __call__(self, sample):
-        return self.transform(sample)
+        return self.transformCompose(sample)
+
+    def __str__(self):
+        return "".join(str(x) + "->" for x in self.transform)

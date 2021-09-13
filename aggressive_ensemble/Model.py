@@ -15,17 +15,46 @@ import numpy as np
 
 from .Models.init_model import init_model
 from .Dataset.ImageDataset import ImageDataset
-from .Tranforms.TransformImage import TransformImage
+from .Transforms.TransformImage import TransformImage
 
 
 class Model:
+    """ Klasa reprezentująca pojedynczy model sieci neuronowej.
+    Oprócz samego modelu przechowuje wymagane atrybuty
 
+    :param csv: device
+    :type csv: dict
+    :param dir: ścieżki do potrzebnych folderów
+    :type dir: dict
+    :param labels: lista możliwych etykiet
+    :type labels: list
+    :param model_config: konfiguracja modelu
+    :type model_config: dict
+    :param device: gpu or cpu
+    :type device: string
+
+    """
     def __init__(self, csv, dir, labels, model_config, device):
+        """Konstruktor klasy
 
+        :param csv: plik csv z danymi
+        :type csv: dict
+        :param dir: ścieżki do potrzebnych folderów
+        :type dir: dict
+        :param labels: lista możliwych etykiet
+        :type labels: list
+        :param model_config: konfiguracja modelu
+        :type model_config: dict
+        :param device: Rodziaj używanego procesora: gpu albo cpu
+        :type device: string
+        """
         self.device = device
 
+        # csv paths
         self.train_csv = csv['train']
         self.test_csv = csv['test']
+
+        # directories
         self.data_dir = dir['data']
         self.stats_dir = dir['stats']
         self.models_dir = dir['models']
@@ -41,15 +70,11 @@ class Model:
                                    lr=model_config["lr"],
                                    momentum=model_config["momentum"])
 
-        self.dataset = self.__create_datasets()
-
         params = {'batch_size': model_config["batch_size"],
                   'shuffle': True,
                   'num_workers': model_config["num_workers"]}
 
-        self.dataloader = {"train": DataLoader(self.dataset["train"], **params),
-                           "val": DataLoader(self.dataset["val"], **params),
-                           "test": DataLoader(self.dataset["test"], **params)}
+        self.dataloader = self.__prepare_data(params=params)
 
         self.is_inception = (model_config["name"] == 'inception')
 
@@ -58,7 +83,14 @@ class Model:
         print("Model %s succesfully initialized" % (self.model_config['name']))
 
     def __load_model(self):
+        """
+        Metoda ładująca model.
+        Jeśli nie została podana ścieżka do modelu, to jest ładowany model z zaimplementowanych modeli, o ile model o nazwie
+        podanej w konfiguracji istnieje
 
+        :return: Załadowany model
+        :rtype:
+        """
         if self.model_config["path"] != "":
             model = torch.load(self.model_config['path'], map_location=torch.device(self.device))
         else:
@@ -71,10 +103,15 @@ class Model:
             self.model_config['preprocessing']['normalization']['mean'] = mean
             self.model_config['preprocessing']['normalization']['std'] = std
             model.to(self.device)
-        print('Model ' + self.model_config['name'] + ' loaded')
+        print('Model ' + self.model_config['name'] + 'is loaded')
         return model
 
     def __create_id(self):
+        """
+
+        :return: ID modelu stworzone na podstawie nazwy modelu, kryterium, użytych metod augmentacji, preprocessingu
+        :rtype: str
+        """
         preprocessing = self.model_config['preprocessing']
         augmentation = self.model_config['augmentation']
 
@@ -114,7 +151,11 @@ class Model:
         return save_name
 
     def __get_params_to_update(self):
+        """
 
+        :return: Parameters to update
+        :rtype: list
+        """
         params_to_update = self.model.parameters()
         print("Params to learn:")
         if self.model_config["feature_extract"]:
@@ -122,15 +163,24 @@ class Model:
             for name, param in self.model.named_parameters():
                 if param.requires_grad:
                     params_to_update.append(param)
-                    print("\t", name)
+                    # print("\t", name)
         else:
             for name, param in self.model.named_parameters():
                 if param.requires_grad:
-                    print("\t", name)
+                    pass
+                    # print("\t", name)
         return params_to_update
 
-    def __create_datasets(self, ratio=0.8):
+    def __prepare_data(self, params, ratio=0.8):
+        """
 
+        :param params: Parametry do stworzenia :class: Dataloader
+        :type params: dict
+        :param ratio: stosunek podziału zbioru danych na treningowy i walidacyjny
+        :type ratio: float, optional
+        :return: Obiekt do ładowania zbioru danych
+        :rtype: :class: Dataloader
+        """
         train_transform = TransformImage(input_size=self.model_config['input_size'],
                                          mean=self.model_config['preprocessing']['normalization']['mean'],
                                          std=self.model_config['preprocessing']['normalization']['std'],
@@ -142,16 +192,18 @@ class Model:
                                         std=self.model_config['preprocessing']['normalization']['std'],
                                         preprocessing=self.model_config['preprocessing'],
                                         augmentations=None)
+        val_transform = test_transform
+        val_csv = self.train_csv
 
         train_dataset = ImageDataset(csv_file=self.train_csv,
                                      data_dir=self.data_dir,
                                      labels=self.labels,
                                      transform=train_transform)
 
-        val_dataset = ImageDataset(csv_file=self.train_csv,
+        val_dataset = ImageDataset(csv_file=val_csv,
                                    data_dir=self.data_dir,
                                    labels=self.labels,
-                                   transform=test_transform)
+                                   transform=val_transform)
 
         test_dataset = ImageDataset(csv_file=self.test_csv,
                                     data_dir=self.data_dir,
@@ -162,18 +214,29 @@ class Model:
         train_dataset = Subset(train_dataset, range(0, l))
         val_dataset = Subset(val_dataset, range(l, len(val_dataset)))
 
-        #test_dataset = Subset(test_dataset, range(0, 200))
-        dataset = {"train": train_dataset,
-                   "val": val_dataset,
-                   "test": test_dataset}
+        # test_dataset = Subset(test_dataset, range(0, 200))
 
-        return dataset
+        dataloader = {"train": DataLoader(train_dataset, **params),
+                      "val": DataLoader(val_dataset, **params),
+                      "test": DataLoader(test_dataset, **params)}
+        return dataloader
 
-    def save(self):
+    def save(self, path):
+        """
+
+        :param path: Ścieżka do zapisania modelu
+        :type path: string
+        :return:
+        :rtype:
+        """
         torch.save(self.model, self.models_dir + self.model_id + '.pth')
 
     def train(self):
+        """
 
+        :return: Przetrenowany model
+        :rtype:
+        """
         since = time.time()
 
         max_epochs = self.model_config['max_epochs']
@@ -257,7 +320,11 @@ class Model:
         return self.model
 
     def test(self):
+        """
 
+        :return: Obiekt z odpowiedziami modelu na testowy zbiór danych
+        :rtype: pd.DataFrame
+        """
         bar = pkbar.Kbar(target=len(self.dataloader['test']), width=50, always_stateful=True)
         answer = pd.DataFrame(columns=self.labels)
         with torch.no_grad():
@@ -276,6 +343,13 @@ class Model:
 
     @staticmethod
     def set_criterion(criterion_name):
+        """
+
+        :param criterion_name: Nazwa kryterium, którego będzie używać model sieci
+        :type criterion_name: string
+        :return: Obiekt wybranego kryterium
+        :rtype:
+        """
         if criterion_name == 'BCE':
             criterion = nn.BCELoss()
         elif criterion_name == 'BCEL':
@@ -286,14 +360,27 @@ class Model:
         return criterion
 
     @staticmethod
-    def rank_preds(preds):
+    def rank_preds(preds) -> pd.DataFrame:
+        """
+
+        :param preds: Przewidywane wartości
+        :type preds: pd.DataFrame
+        :return: Uszeregowane przewiywane wratości od najbardziej prawdopodobnych do najmniej
+        :rtype: pd.DataFrame
+        """
         rpreds = pd.DataFrame(preds)
         for col in preds.columns.values:
             print()
             rpreds.loc[:, col] = preds.sort_values(by=col, ascending=False).index
         return rpreds
 
-    def show_random_images(self, num):
+    def show_random_images(self, num) -> None:
+        """
+
+        :param num: Liczba obrazów do wyświetlenia
+        :type num: int
+        """
+
         indices = list(range(len(self.dataset['train'])))
         np.random.shuffle(indices)
         idx = indices[:num]
@@ -313,7 +400,15 @@ class Model:
 
     @staticmethod
     def score(preds: pd.DataFrame, trues: pd.DataFrame):
+        """ Funkcja obliczająca wynik modelu sieci neuronowej
 
+        :param preds: Wartości przewidywane przez model
+        :type preds: pd.DataFrame
+        :param trues: Wartości prawdziwe
+        :type trues: pd.DataFrame
+        :return: Ogólny wynik modelu oraz wyniki dla każdej z cech w postaci listy
+        :rtype: float, list
+        """
         labels_score = []
 
         score = 0.0

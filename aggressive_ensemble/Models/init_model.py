@@ -3,6 +3,21 @@ from .models import __all__
 
 
 def init_model(model_name, num_classes, feature_extract, use_pretrained=True):
+    """
+
+    :param model_name:
+    :type model_name:
+    :param num_classes:
+    :type num_classes:
+    :param feature_extract:
+    :type feature_extract:
+    :param use_pretrained:
+    :type use_pretrained:
+    :return: wygenerowny model, wielkość wejścia modelu, sugerowana średnia do normalizacji, sugerowane odchylenie standardowe do normalizacji
+    :rtype: model,int,float,float
+    """
+
+    assert model_name in __all__, "Model doesn't exist. Possible models: {}".format(__all__)
     model = None
     input_size = 0
     mean = [0, 0, 0]

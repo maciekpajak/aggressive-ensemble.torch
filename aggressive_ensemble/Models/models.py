@@ -8,13 +8,32 @@ __all__ = ['resnet50', 'resnet152', 'alexnet', 'vgg', 'densenet',
 
 
 def set_parameter_requires_grad(model, feature_extracting):
+    """
+
+    :param model:
+    :type model:
+    :param feature_extracting:
+    :type feature_extracting:
+    :return:
+    :rtype:
+    """
     if feature_extracting:
         for param in model.parameters():
             param.requires_grad = False
 
 
 def nasnetalarge(num_classes, feature_extract, use_pretrained=True):
+    """Funkcja zwracająca model nasnet_large
 
+    :param num_classes: liczba szukanych cech
+    :type num_classes: int
+    :param feature_extract: czy ekstrachować cechy
+    :type feature_extract: bool
+    :param use_pretrained: czy używać wstępnie przetrenowanego modelu
+    :type use_pretrained: bool
+    :return: wygenerowny model,wielkość wejścia modelu,sugerowana średnia do normalizacji,sugerowane odchylenie standardowe do normalizacji
+    :rtype: model, int, float, float
+    """
     model = pretrainedmodels.nasnetalarge(num_classes=1000, pretrained='imagenet')
     set_parameter_requires_grad(model, feature_extract)
     num_ftrs = model.last_linear.in_features
@@ -28,6 +47,17 @@ def nasnetalarge(num_classes, feature_extract, use_pretrained=True):
 
 
 def nasnetamobile(num_classes, feature_extract, use_pretrained=True):
+    """Funkcja zwracająca model nasnet_mobile
+
+    :param num_classes: liczba szukanych cech
+    :type num_classes: int
+    :param feature_extract: czy ekstrachować cechy
+    :type feature_extract: bool
+    :param use_pretrained: czy używać wstępnie przetrenowanego modelu
+    :type use_pretrained: bool
+    :return: wygenerowny model,wielkość wejścia modelu,sugerowana średnia do normalizacji,sugerowane odchylenie standardowe do normalizacji
+    :rtype: model, int, float, float
+    """
     model = pretrainedmodels.nasnetamobile(num_classes=1000, pretrained='imagenet')
     set_parameter_requires_grad(model, feature_extract)
     num_ftrs = model.last_linear.in_features
@@ -41,7 +71,17 @@ def nasnetamobile(num_classes, feature_extract, use_pretrained=True):
 
 
 def xception(num_classes, feature_extract, use_pretrained=True):
+    """Funkcja zwracająca model xception
 
+    :param num_classes: liczba szukanych cech
+    :type num_classes: int
+    :param feature_extract: czy ekstrachować cechy
+    :type feature_extract: bool
+    :param use_pretrained: czy używać wstępnie przetrenowanego modelu
+    :type use_pretrained: bool
+    :return: wygenerowny model,wielkość wejścia modelu,sugerowana średnia do normalizacji,sugerowane odchylenie standardowe do normalizacji
+    :rtype: model, int, float, float
+    """
     model = pretrainedmodels.xception(num_classes=1000, pretrained='imagenet')
     set_parameter_requires_grad(model, feature_extract)
     num_ftrs = model.last_linear.in_features
@@ -55,7 +95,17 @@ def xception(num_classes, feature_extract, use_pretrained=True):
 
 
 def inception(num_classes, feature_extract, use_pretrained=True):
+    """Funkcja zwracająca model inception_v3
 
+    :param num_classes: liczba szukanych cech
+    :type num_classes: int
+    :param feature_extract: czy ekstrachować cechy
+    :type feature_extract: bool
+    :param use_pretrained: czy używać wstępnie przetrenowanego modelu
+    :type use_pretrained: bool
+    :return: wygenerowny model,wielkość wejścia modelu,sugerowana średnia do normalizacji,sugerowane odchylenie standardowe do normalizacji
+    :rtype: model, int, float, float
+    """
     model = models.inception_v3(pretrained=use_pretrained)
     set_parameter_requires_grad(model, feature_extract)
     # Handle the auxilary net
@@ -75,7 +125,17 @@ def inception(num_classes, feature_extract, use_pretrained=True):
 
 
 def densenet(num_classes, feature_extract, use_pretrained=True):
+    """Funkcja zwracająca model densenet
 
+    :param num_classes: liczba szukanych cech
+    :type num_classes: int
+    :param feature_extract: czy ekstrachować cechy
+    :type feature_extract: bool
+    :param use_pretrained: czy używać wstępnie przetrenowanego modelu
+    :type use_pretrained: bool
+    :return: wygenerowny model,wielkość wejścia modelu,sugerowana średnia do normalizacji,sugerowane odchylenie standardowe do normalizacji
+    :rtype: model, int, float, float
+    """
     model = models.densenet121(pretrained=use_pretrained)
     set_parameter_requires_grad(model, feature_extract)
     num_ftrs = model.classifier.in_features
@@ -89,7 +149,17 @@ def densenet(num_classes, feature_extract, use_pretrained=True):
 
 
 def vgg(num_classes, feature_extract, use_pretrained=True):
+    """Funkcja zwracająca model vgg
 
+    :param num_classes: liczba szukanych cech
+    :type num_classes: int
+    :param feature_extract: czy ekstrachować cechy
+    :type feature_extract: bool
+    :param use_pretrained: czy używać wstępnie przetrenowanego modelu
+    :type use_pretrained: bool
+    :return: wygenerowny model,wielkość wejścia modelu,sugerowana średnia do normalizacji,sugerowane odchylenie standardowe do normalizacji
+    :rtype: model, int, float, float
+    """
     model = models.vgg11_bn(pretrained=use_pretrained)
     set_parameter_requires_grad(model, feature_extract)
     num_ftrs = model.classifier[6].in_features
@@ -103,7 +173,17 @@ def vgg(num_classes, feature_extract, use_pretrained=True):
 
 
 def alexnet(num_classes, feature_extract, use_pretrained=True):
+    """Funkcja zwracająca model alexnet
 
+    :param num_classes: liczba szukanych cech
+    :type num_classes: int
+    :param feature_extract: czy ekstrachować cechy
+    :type feature_extract: bool
+    :param use_pretrained: czy używać wstępnie przetrenowanego modelu
+    :type use_pretrained: bool
+    :return: wygenerowny model,wielkość wejścia modelu,sugerowana średnia do normalizacji,sugerowane odchylenie standardowe do normalizacji
+    :rtype: model, int, float, float
+    """
     model = models.alexnet(pretrained=use_pretrained)
     set_parameter_requires_grad(model, feature_extract)
     num_ftrs = model.classifier[6].in_features
@@ -117,7 +197,17 @@ def alexnet(num_classes, feature_extract, use_pretrained=True):
 
 
 def resnet50(num_classes, feature_extract, use_pretrained=True):
-    
+    """Funkcja zwracająca model resnet50
+
+    :param num_classes: liczba szukanych cech
+    :type num_classes: int
+    :param feature_extract: czy ekstrachować cechy
+    :type feature_extract: bool
+    :param use_pretrained: czy używać wstępnie przetrenowanego modelu
+    :type use_pretrained: bool
+    :return: wygenerowny model,wielkość wejścia modelu,sugerowana średnia do normalizacji,sugerowane odchylenie standardowe do normalizacji
+    :rtype: model, int, float, float
+    """
     model = models.resnet50(pretrained=use_pretrained)
     set_parameter_requires_grad(model, feature_extract)
     num_ftrs = model.fc.in_features
@@ -131,7 +221,17 @@ def resnet50(num_classes, feature_extract, use_pretrained=True):
 
 
 def resnet152(num_classes, feature_extract, use_pretrained=True):
+    """Funkcja zwracająca model resnet152
 
+    :param num_classes: liczba szukanych cech
+    :type num_classes: int
+    :param feature_extract: czy ekstrachować cechy
+    :type feature_extract: bool
+    :param use_pretrained: czy używać wstępnie przetrenowanego modelu
+    :type use_pretrained: bool
+    :return: wygenerowny model,wielkość wejścia modelu,sugerowana średnia do normalizacji,sugerowane odchylenie standardowe do normalizacji
+    :rtype: model, int, float, float
+    """
     model = models.resnet152(pretrained=use_pretrained)
     set_parameter_requires_grad(model, feature_extract)
     num_ftrs = model.fc.in_features
