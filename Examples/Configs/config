@@ -1,0 +1,21 @@
+config = {
+        "directories": {
+            "root_dir": "",
+            "data_dir": "",
+            "stats_dir": "",
+            "models_dir": ""
+        },
+        "files": {
+            "test_csv": "",
+            "train_csv": "",
+            "answer_csv": "",
+            "labels_csv": ""
+        },
+        "modes": {
+            "train": False,
+            "test": False,
+            "save_models": False
+        },
+        "device": "gpu"
+    }
+    

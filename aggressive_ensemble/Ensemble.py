@@ -1,6 +1,7 @@
 import json
 import torch
 import pandas as pd
+import warnings
 
 from aggressive_ensemble.Model import Model
 
@@ -28,60 +29,7 @@ class Ensemble:
 
     """
 
-    config_example = {
-        "directories": {
-            "root_dir": "",
-            "data_dir": "",
-            "stats_dir": "",
-            "models_dir": ""
-        },
-        "files": {
-            "test_csv": "",
-            "train_csv": "",
-            "answer_csv": "",
-            "labels_csv": ""
-        },
-        "modes": {
-            "train": False,
-            "test": False,
-            "save_models": False
-        },
-        "device": "gpu"
-    }
-    ensemble_example = {
-        "model1": {
-            "name": "inception",
-            "path": "",
-            "max_epochs": 80,
-            "criterion": "BCE",
-            "batch_size": 32,
-            "num_workers": 10,
-            "preprocessing": {
-                "polygon_extraction": True,
-                "ratation_to_horizontal": True,
-                "RGB_to_HSV": True,
-                "edge_detection": False,
-                "normalization": {
-                    "mean": [0, 0, 0],
-                    "std": [1, 1, 1]
-                }
-            },
-            "augmentation": {
-                "random_hflip": True,
-                "random_vflip": True,
-                "random_rotation": False,
-                "switch_RGB_channel": False
-            },
-            "pretrained": True,
-            "feature_extract": False,
-            "input_size": 224,
-            "lr": 0.01,
-            "momentum": 0.9,
-            "val_every": 3
-        }
-    }
-
-    def __init__(self, config, ensemble):
+    def __init__(self, config, ensemble, models_config,  max_subensemble_models=1, mode="auto"):
         """Konstuktor klasy
 
         :param config: Konfiguracja komitetu
@@ -91,26 +39,33 @@ class Ensemble:
         """
         # config = json.load(open(config_file))
 
-        self.config_example["device"] = config["device"]
+        #self.config_example["device"] = config["device"]
+        if mode not in ["manual","auto"]:
+            raise ValueError("Mode should be either manual or auto")
+        self.mode = mode
+
+        if not isinstance(max_subensemble_models, int) or max_subensemble_models < 1:
+            raise ValueError("Argument max_subensemble_models should be int and be greater than 1")
+        self.max_subensemble_models = max_subensemble_models
+
+        if config["device"] not in ["cpu","gpu"]:
+            raise ValueError("Device should be either cpu or gpu")
         self.device = config["device"]
         if config["device"] == "gpu":
             if not torch.cuda.is_available():
-                print("CUDA is not available! Switched to CPU")
+                warnings.warn("CUDA is not available! Switched to CPU")
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        self.config_example["directories"] = config["directories"]
         self.directories = config["directories"]
-        self.config_example["modes"] = config["modes"]
         self.mode = config["modes"]
-        self.config_example["files"] = config["files"]
         self.files = config["files"]
 
         self.labels = list(pd.read_csv(self.files["labels_csv"]))
 
-        # self.ensemble = json.load(open(ensemble_config))
+        self.models= models
         self.ensemble = ensemble
 
-        self.models = self.__load_models()  # załadowanie modeli
+        #self.models = self.__load_models()  # załadowanie modeli
 
     def __call__(self):
         """
@@ -131,7 +86,50 @@ class Ensemble:
             self.__save_answer(answer)
 
     def __str__(self):
-        return ""
+        return self.ensemble
+
+    def train(self):
+        """
+
+        :return:
+        :rtype:
+        """
+        print('Loading models in progress...')
+        csv = {'test': self.files["test_csv"],
+               'train': self.files["train_csv"]}
+        dir = {'stats': self.directories["stats_dir"],
+               'data': self.directories["data_dir"],
+               'models': self.directories["models_dir"]}
+        return {model: Model(csv=csv, dir=dir, labels=self.labels,
+                             model_config=self.models_config[model], device=self.device)
+                for model in self.models_config}
+
+        print("Training...")
+        for model in self.models:
+            self.models[model].show_random_images(5)
+            self.models[model].train()
+            self.models[model].save(self.directories["root_dir"] + "ensemble_models/" + model.model_id + ".pth")
+
+    def test(self):
+        """
+
+        :return:
+        :rtype:
+        """
+        print('Testing...')
+        answers = {model: self.models[model].test() for model in self.models}
+        answer = self.combine_answers(answers)
+        return answer
+
+    def autobuild_ensemble(self):
+        """
+        Automatycznie buduje komitet na podstawie statystyk wytrenowanych modeli
+        Domyślnie przypisuje wszysktie modele do wszystkich cech
+        :return:
+        :rtype:
+        """
+
+        pass
 
     def __load_models(self):
         """
@@ -146,32 +144,10 @@ class Ensemble:
                'data': self.directories["data_dir"],
                'models': self.directories["models_dir"]}
         return {model: Model(csv=csv, dir=dir, labels=self.labels,
-                             model_config=self.ensemble[model], device=self.device)
-                for model in self.ensemble}
+                             model_config=self.models_config[model], device=self.device)
+                for model in self.models_config}
 
-    def train(self):
-        """
-
-        :return:
-        :rtype:
-        """
-        print("Training...")
-        for model in self.models:
-            self.models[model].show_random_images(5)
-            self.models[model].train()
-            self.models[model].save()
-
-    def test(self):
-        """
-
-        :return:
-        :rtype:
-        """
-        print('Testing...')
-        answers = {model: self.models[model].test() for model in self.models}
-        return self.combine_answers(answers)
-
-    def __save_answer(self, answer):
+    def __save_answer(self):
         """
 
         :param answer:
