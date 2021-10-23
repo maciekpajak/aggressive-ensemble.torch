@@ -1,6 +1,6 @@
 from torchvision import transforms
 
-from aggressive_ensemble.Transforms.Transforms import *
+from .Transforms import *
 
 
 class TransformImage(object):

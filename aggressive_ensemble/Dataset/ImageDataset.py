@@ -32,6 +32,13 @@ class ImageDataset(Dataset):
         :type transform:
         """
         self.df = pd.get_dummies(pd.read_csv(csv_file))
+        columns = self.df.columns.to_list()
+        missing_cols = []
+        for label in labels:
+            if label not in columns:
+                missing_cols.append(label)
+        for mc in missing_cols:
+            self.df[mc] = 0
         self.data_dir = data_dir
         self.labels = labels
         self.transform = transform

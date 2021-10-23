@@ -1,7 +1,9 @@
+import os
+
 import torch
 from torch import optim
 from torch import nn
-from torch.utils.data import DataLoader, Subset, random_split
+from torch.utils.data import DataLoader, Subset
 from torchvision import transforms
 import matplotlib.pyplot as plt
 
@@ -13,19 +15,15 @@ import pkbar
 from sklearn.metrics import average_precision_score
 import numpy as np
 
-from .Models.init_model import init_model
-from .Dataset.ImageDataset import ImageDataset
-from .Transforms.TransformImage import TransformImage
+from Models.init_model import init_model
+from Dataset.ImageDataset import ImageDataset
+from Transforms.TransformImage import TransformImage
 
 
 class Model:
     """ Klasa reprezentująca pojedynczy model sieci neuronowej.
     Oprócz samego modelu przechowuje wymagane atrybuty
 
-    :param csv: device
-    :type csv: dict
-    :param dir: ścieżki do potrzebnych folderów
-    :type dir: dict
     :param labels: lista możliwych etykiet
     :type labels: list
     :param model_config: konfiguracja modelu
@@ -34,13 +32,10 @@ class Model:
     :type device: string
 
     """
-    def __init__(self, csv, dir, labels, model_config, device):
+
+    def __init__(self, labels, model_config, device):
         """Konstruktor klasy
 
-        :param csv: plik csv z danymi
-        :type csv: dict
-        :param dir: ścieżki do potrzebnych folderów
-        :type dir: dict
         :param labels: lista możliwych etykiet
         :type labels: list
         :param model_config: konfiguracja modelu
@@ -49,15 +44,6 @@ class Model:
         :type device: string
         """
         self.device = device
-
-        # csv paths
-        self.train_csv = csv['train']
-        self.test_csv = csv['test']
-
-        # directories
-        self.data_dir = dir['data']
-        self.stats_dir = dir['stats']
-        self.models_dir = dir['models']
 
         self.model_config = model_config
 
@@ -70,12 +56,6 @@ class Model:
                                    lr=model_config["lr"],
                                    momentum=model_config["momentum"])
 
-        params = {'batch_size': model_config["batch_size"],
-                  'shuffle': True,
-                  'num_workers': model_config["num_workers"]}
-
-        self.dataloader = self.__prepare_data(params=params)
-
         self.is_inception = (model_config["name"] == 'inception')
 
         self.model_id = self.__create_id()
@@ -85,8 +65,8 @@ class Model:
     def __load_model(self):
         """
         Metoda ładująca model.
-        Jeśli nie została podana ścieżka do modelu, to jest ładowany model z zaimplementowanych modeli, o ile model o nazwie
-        podanej w konfiguracji istnieje
+        Jeśli nie została podana ścieżka do modelu, to jest ładowany model
+        z zaimplementowanych modeli, o ile model o nazwie podanej w konfiguracji istnieje
 
         :return: Załadowany model
         :rtype:
@@ -102,8 +82,8 @@ class Model:
             self.model_config["input_size"] = input_size
             self.model_config['preprocessing']['normalization']['mean'] = mean
             self.model_config['preprocessing']['normalization']['std'] = std
-            model.to(self.device)
-        print('Model ' + self.model_config['name'] + 'is loaded')
+        model.to(self.device)
+        print('Model ' + self.model_config['name'] + ' is loaded')
         return model
 
     def __create_id(self):
@@ -171,56 +151,6 @@ class Model:
                     # print("\t", name)
         return params_to_update
 
-    def __prepare_data(self, params, ratio=0.8):
-        """
-
-        :param params: Parametry do stworzenia :class: Dataloader
-        :type params: dict
-        :param ratio: stosunek podziału zbioru danych na treningowy i walidacyjny
-        :type ratio: float, optional
-        :return: Obiekt do ładowania zbioru danych
-        :rtype: :class: Dataloader
-        """
-        train_transform = TransformImage(input_size=self.model_config['input_size'],
-                                         mean=self.model_config['preprocessing']['normalization']['mean'],
-                                         std=self.model_config['preprocessing']['normalization']['std'],
-                                         preprocessing=self.model_config['preprocessing'],
-                                         augmentations=self.model_config['augmentation'])
-
-        test_transform = TransformImage(input_size=self.model_config['input_size'],
-                                        mean=self.model_config['preprocessing']['normalization']['mean'],
-                                        std=self.model_config['preprocessing']['normalization']['std'],
-                                        preprocessing=self.model_config['preprocessing'],
-                                        augmentations=None)
-        val_transform = test_transform
-        val_csv = self.train_csv
-
-        train_dataset = ImageDataset(csv_file=self.train_csv,
-                                     data_dir=self.data_dir,
-                                     labels=self.labels,
-                                     transform=train_transform)
-
-        val_dataset = ImageDataset(csv_file=val_csv,
-                                   data_dir=self.data_dir,
-                                   labels=self.labels,
-                                   transform=val_transform)
-
-        test_dataset = ImageDataset(csv_file=self.test_csv,
-                                    data_dir=self.data_dir,
-                                    labels=self.labels,
-                                    transform=test_transform)
-
-        l = int(len(train_dataset) * ratio)
-        train_dataset = Subset(train_dataset, range(0, l))
-        val_dataset = Subset(val_dataset, range(l, len(val_dataset)))
-
-        # test_dataset = Subset(test_dataset, range(0, 200))
-
-        dataloader = {"train": DataLoader(train_dataset, **params),
-                      "val": DataLoader(val_dataset, **params),
-                      "test": DataLoader(test_dataset, **params)}
-        return dataloader
-
     def save(self, path):
         """
 
@@ -229,14 +159,47 @@ class Model:
         :return:
         :rtype:
         """
-        torch.save(self.model, self.models_dir + self.model_id + '.pth')
+        torch.save(self.model, path)
 
-    def train(self):
+    def train(self, train_csv, data_dir):
         """
 
         :return: Przetrenowany model
         :rtype:
         """
+        ratio = 0.8
+        train_transform = TransformImage(input_size=self.model_config['input_size'],
+                                         mean=self.model_config['preprocessing']['normalization']['mean'],
+                                         std=self.model_config['preprocessing']['normalization']['std'],
+                                         preprocessing=self.model_config['preprocessing'],
+                                         augmentations=self.model_config['augmentation'])
+
+        val_transform = TransformImage(input_size=self.model_config['input_size'],
+                                       mean=self.model_config['preprocessing']['normalization']['mean'],
+                                       std=self.model_config['preprocessing']['normalization']['std'],
+                                       preprocessing=self.model_config['preprocessing'],
+                                       augmentations=None)
+
+        train_dataset = ImageDataset(csv_file=train_csv,
+                                     data_dir=data_dir,
+                                     labels=self.labels,
+                                     transform=train_transform)
+
+        val_dataset = ImageDataset(csv_file=train_csv,
+                                   data_dir=data_dir,
+                                   labels=self.labels,
+                                   transform=val_transform)
+
+        l = int(len(train_dataset) * ratio)
+        train_dataset = Subset(train_dataset, range(0, l))
+        val_dataset = Subset(val_dataset, range(l, len(val_dataset)))
+        params = {'batch_size': self.model_config["batch_size"],
+                  'shuffle': True,
+                  'num_workers': self.model_config["num_workers"]}
+        dataloader = {"train": DataLoader(train_dataset, **params),
+                      "val": DataLoader(val_dataset, **params)}
+
+
         since = time.time()
 
         max_epochs = self.model_config['max_epochs']
@@ -246,8 +209,10 @@ class Model:
         headers.extend(self.labels)
         stats = {'train': pd.DataFrame(columns=headers),
                  'val': pd.DataFrame(columns=headers)}
-        stats_path = {'train': self.stats_dir + self.model_id + '_train_stats.csv',
-                      'val': self.stats_dir + self.model_id + '_val_stats.csv'}
+        #stats_dir = stats_dir
+        #os.mkdir(stats_dir)
+        #stats_path = {'train': stats_dir + self.model_id + '_train_stats.csv',
+        #              'val': stats_dir + self.model_id + '_val_stats.csv'}
 
         epoch_score_history = [0, 0, 0]
         for epoch in range(max_epochs):
@@ -255,20 +220,20 @@ class Model:
             for phase in ['train', 'val']:
                 if phase == 'train':
                     self.model.train()
-                    bar = pkbar.Kbar(target=len(self.dataloader[phase]), epoch=epoch, num_epochs=max_epochs, width=50,
+                    bar = pkbar.Kbar(target=len(dataloader[phase]), epoch=epoch, num_epochs=max_epochs, width=50,
                                      always_stateful=True)
                 else:
                     if (epoch + 1) % val_every != 0:
                         break
                     self.model.eval()
-                    bar = pkbar.Kbar(target=len(self.dataloader[phase]), width=50,
+                    bar = pkbar.Kbar(target=len(dataloader[phase]), width=50,
                                      always_stateful=True)
 
                 running_loss = 0.0
 
                 preds = pd.DataFrame(columns=self.labels)
                 trues = pd.DataFrame(columns=self.labels)
-                for i, (tag_id, inputs, labels) in enumerate(self.dataloader[phase], 0):
+                for i, (tag_id, inputs, labels) in enumerate(dataloader[phase], 0):
 
                     inputs, labels = inputs.to(self.device), labels.to(self.device)
 
@@ -300,14 +265,14 @@ class Model:
                     bar.update(i, values=[("loss", loss.item()), ('score', score)])
 
                 score, labels_score = self.score(preds, trues)
-                epoch_loss = running_loss * inputs.size(0) / len(self.dataloader[phase].dataset)
+                epoch_loss = running_loss * inputs.size(0) / len(dataloader[phase].dataset)
 
                 bar.add(1, values=[("epoch_loss", epoch_loss), ('epoch_score', score)])
 
                 epoch_stats = [epoch + 1, epoch_loss, score]
                 epoch_stats.extend(labels_score)
                 stats[phase] = stats[phase].append(pd.DataFrame([epoch_stats], columns=headers), ignore_index=True)
-                stats[phase].to_csv(path_or_buf=stats_path[phase], index=False)
+                #stats[phase].to_csv(path_or_buf=stats_path[phase], index=False)
 
                 if phase == 'train':
                     epoch_score_history[epoch % 3] = score
@@ -317,19 +282,35 @@ class Model:
         time_elapsed = time.time() - since
         print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
 
-        return self.model
+        return self.model, stats
 
-    def test(self):
+    def test(self, test_csv, data_dir):
         """
 
         :return: Obiekt z odpowiedziami modelu na testowy zbiór danych
         :rtype: pd.DataFrame
         """
-        bar = pkbar.Kbar(target=len(self.dataloader['test']), width=50, always_stateful=True)
+
+        test_transform = TransformImage(input_size=self.model_config['input_size'],
+                                        mean=self.model_config['preprocessing']['normalization']['mean'],
+                                        std=self.model_config['preprocessing']['normalization']['std'],
+                                        preprocessing=self.model_config['preprocessing'],
+                                        augmentations=None)
+
+        test_dataset = ImageDataset(csv_file=test_csv,
+                                    data_dir=data_dir,
+                                    labels=self.labels,
+                                    transform=test_transform)
+        params = {'batch_size': self.model_config["batch_size"],
+                  'shuffle': True,
+                  'num_workers': self.model_config["num_workers"]}
+        dataloader = DataLoader(test_dataset, **params)
+
+        bar = pkbar.Kbar(target=len(dataloader), width=50, always_stateful=True)
         answer = pd.DataFrame(columns=self.labels)
         with torch.no_grad():
             self.model.eval()
-            for i, (tag_id, inputs, labels) in enumerate(self.dataloader['test'], 0):
+            for i, (tag_id, inputs, labels) in enumerate(dataloader, 0):
                 inputs = inputs.to(self.device)
                 outputs = self.model(inputs)
                 answer = answer.append(pd.DataFrame(outputs.tolist(), columns=self.labels, index=tag_id.tolist()))
@@ -338,7 +319,6 @@ class Model:
         answer.index.name = 'tag_id'
         answer = self.rank_preds(answer)
         answer = answer.reset_index(drop=True)
-        print(answer)
         return answer
 
     @staticmethod
