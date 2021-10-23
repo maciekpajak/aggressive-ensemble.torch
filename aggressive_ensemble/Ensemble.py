@@ -1,7 +1,11 @@
+import types
+
 import torch
 import pandas as pd
 import warnings
 import os
+from torch import nn
+from typing import List
 
 from aggressive_ensemble.Model import Model
 
@@ -13,8 +17,10 @@ class Ensemble:
 
     """
 
-    def __init__(self, root_dir: str, labels: list, models: dict, ensemble=None, max_subensemble_models=1, mode="auto",
-                 device="cpu"):
+    def __init__(self, root_dir: str, labels: list, models: dict, ensemble: dict = None,
+                 max_subensemble_models: int = 1,
+                 mode: str = "auto",
+                 device: str = "cpu"):
         """Konstuktor klasy
 
         :param ensemble: Konfiguracja każdego modelu komitetu
@@ -23,8 +29,14 @@ class Ensemble:
         if not os.path.exists(root_dir):
             raise ValueError("Root_dir doesn't exist")
 
-        if len(labels) == 0:
-            raise ValueError("No labels")
+        if not labels:
+            raise ValueError("Labels list cannot be empty")
+
+        if not models:
+            raise ValueError("Models cannot be empty")
+
+        if not models and mode == "manual":
+            warnings.warn("Mode is manual and ensemble is not provided. Test function is not available in that case.")
 
         if mode not in ["manual", "auto"]:
             raise ValueError("Mode should be either manual or auto")
@@ -37,10 +49,6 @@ class Ensemble:
         if device not in ["cpu", "gpu"]:
             raise ValueError("Device should be either cpu or gpu")
         self.device = device
-        if self.device == "gpu":
-            if not torch.cuda.is_available():
-                warnings.warn("CUDA is not available! Switched to CPU")
-            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self.root_dir = root_dir
 
@@ -55,12 +63,24 @@ class Ensemble:
     def __str__(self):
         return str(self.ensemble)
 
-    def train(self, train_csv, data_dir):
+    def train(self, train_csv: str, data_dir: str, score, criterion=nn.BCELoss()):
         """
 
         :return:
         :rtype:
         """
+        if not os.path.exists(train_csv):
+            raise ValueError("Train csv doesn't exist")
+
+        if not os.path.exists(data_dir):
+            raise ValueError("Data dir doesn't exist")
+
+        if not callable(score):
+            raise ValueError("Score should be function")
+
+        if not callable(criterion):
+            raise ValueError("Criterion should be function")
+
         train_stats_path = self.root_dir + "training_stats/"
         if not os.path.exists(train_stats_path):
             os.mkdir(train_stats_path)
@@ -73,7 +93,7 @@ class Ensemble:
 
             # trening modelu
             print("Training model: " + model)
-            (_, stats) = m.train(train_csv, data_dir)
+            (_, stats) = m.train(train_csv, data_dir, score, criterion)
 
             self.models[model]["path"] = self.root_dir + "ensemble_models/" + model + ".pth"  # zmiana sciezki modelu
 
@@ -89,12 +109,18 @@ class Ensemble:
             stats["val"].to_csv(path_or_buf=train_stats_path + model + "val_stats.csv", index=False, header=True)
             print("Trained model val_stats saved: " + train_stats_path + model + "val_stats.csv")
 
-    def test(self, test_csv, data_dir):
+    def test(self, test_csv: str, data_dir: str):
         """
 
         :return:
         :rtype:
         """
+        if not os.path.exists(test_csv):
+            raise ValueError("Test csv doesn't exist")
+
+        if not os.path.exists(data_dir):
+            raise ValueError("Data dir doesn't exist")
+
         final_answer = pd.DataFrame(columns=self.labels)
         print('Testing...')
         for subensemble in self.ensemble:
@@ -127,7 +153,7 @@ class Ensemble:
         pass
 
     @staticmethod
-    def combine_answers(answers):
+    def combine_answers(answers: List[pd.DataFrame]):
         """
 
         :param answers:
@@ -135,9 +161,6 @@ class Ensemble:
         :return:
         :rtype:
         """
-
-        print('Combining answers...')
-
         # answers = list(answer.values())
 
         tags = answers[0].iloc[:, 0].values

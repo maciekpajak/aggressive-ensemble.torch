@@ -1,4 +1,6 @@
 import os
+import types
+import warnings
 
 import torch
 from torch import optim
@@ -20,6 +22,11 @@ from Dataset.ImageDataset import ImageDataset
 from Transforms.TransformImage import TransformImage
 
 
+def create_dataset(input_size, mean, std, preprocessing, augmentations, csv_file, data_dir, labels):
+    transform = TransformImage(input_size, mean, std, preprocessing, augmentations)
+    return ImageDataset(csv_file, data_dir, labels, transform)
+
+
 class Model:
     """ Klasa reprezentująca pojedynczy model sieci neuronowej.
     Oprócz samego modelu przechowuje wymagane atrybuty
@@ -33,7 +40,7 @@ class Model:
 
     """
 
-    def __init__(self, labels, model_config, device):
+    def __init__(self, labels: list, model_config: dict, cpu_or_gpu: str):
         """Konstruktor klasy
 
         :param labels: lista możliwych etykiet
@@ -43,92 +50,40 @@ class Model:
         :param device: Rodziaj używanego procesora: gpu albo cpu
         :type device: string
         """
-        self.device = device
+
+        if not labels:
+            raise ValueError("Labels list cannot be empty")
+
+        if not model_config:
+            raise ValueError("Model_config dictionary cannot be empty")
+
+        if cpu_or_gpu not in ["cpu", "gpu"]:
+            raise ValueError("Device should be either cpu or gpu")
+
+
+
+        self.device = cpu_or_gpu
+        if cpu_or_gpu == "gpu":
+            if not torch.cuda.is_available():
+                warnings.warn("CUDA is not available! Switched to CPU")
+            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self.model_config = model_config
-
         self.labels = labels
 
-        self.model = self.__load_model()
+        self.model = torch.load(self.model_config['path'], map_location=torch.device(self.device))
 
-        self.criterion = self.set_criterion(model_config["criterion"])
-        self.optimizer = optim.SGD(self.__get_params_to_update(),
-                                   lr=model_config["lr"],
+        self.optimizer = optim.SGD(self.__get_params_to_update(), lr=model_config["lr"],
                                    momentum=model_config["momentum"])
 
         self.is_inception = (model_config["name"] == 'inception')
 
-        self.model_id = self.__create_id()
+        self.params = {'batch_size': self.model_config["batch_size"],
+                       'shuffle': True,
+                       'num_workers': self.model_config["num_workers"]}
 
-        print("Model %s succesfully initialized" % (self.model_config['name']))
-
-    def __load_model(self):
-        """
-        Metoda ładująca model.
-        Jeśli nie została podana ścieżka do modelu, to jest ładowany model
-        z zaimplementowanych modeli, o ile model o nazwie podanej w konfiguracji istnieje
-
-        :return: Załadowany model
-        :rtype:
-        """
-        if self.model_config["path"] != "":
-            model = torch.load(self.model_config['path'], map_location=torch.device(self.device))
-        else:
-            name = self.model_config["name"]
-            num_classes = len(self.labels)
-            feature_exctract = self.model_config["feature_extract"]
-            pretrained = self.model_config['pretrained']
-            model, input_size, mean, std = init_model(name, num_classes, feature_exctract, use_pretrained=pretrained)
-            self.model_config["input_size"] = input_size
-            self.model_config['preprocessing']['normalization']['mean'] = mean
-            self.model_config['preprocessing']['normalization']['std'] = std
-        model.to(self.device)
-        print('Model ' + self.model_config['name'] + ' is loaded')
-        return model
-
-    def __create_id(self):
-        """
-
-        :return: ID modelu stworzone na podstawie nazwy modelu, kryterium, użytych metod augmentacji, preprocessingu
-        :rtype: str
-        """
-        preprocessing = self.model_config['preprocessing']
-        augmentation = self.model_config['augmentation']
-
-        t = 'pretrained=%s' % self.model_config['pretrained']
-
-        mean = preprocessing['normalization']['mean']
-        std = preprocessing['normalization']['std']
-        p = 'preproc=('
-        if preprocessing["polygon_extraction"]:
-            p += "PolExtr,"
-        if preprocessing["ratation_to_horizontal"]:
-            p += "RotToH,"
-        if preprocessing["edge_detection"]:
-            p += "Edge,"
-        if preprocessing["RGB_to_HSV"]:
-            p += "HSV,"
-        if preprocessing['normalization']:
-            p += "Norm=mean%s,std%s" % (mean, std)
-        if p == 'preproc=(':
-            p += 'None'
-        p += ')'
-
-        a = 'aug='
-        if augmentation["random_vflip"]:
-            a += "RandVFlip,"
-        if augmentation["random_hflip"]:
-            a += "RandHFlip,"
-        if augmentation["random_rotation"]:
-            a += "RandRot,"
-        if augmentation["switch_RGB_channel"]:
-            a += "ChannelSwitch,"
-        if a == '':
-            a += 'None'
-
-        save_name = self.model_config['name'] + '_' + self.model_config['criterion'] + '_' + p + '_' + a + '_' + t
-        print(save_name)
-        return save_name
+    def __str__(self):
+        return str(self.model_config)
 
     def __get_params_to_update(self):
         """
@@ -137,7 +92,6 @@ class Model:
         :rtype: list
         """
         params_to_update = self.model.parameters()
-        print("Params to learn:")
         if self.model_config["feature_extract"]:
             params_to_update = []
             for name, param in self.model.named_parameters():
@@ -159,46 +113,57 @@ class Model:
         :return:
         :rtype:
         """
+        if not os.path.exists(path):
+            raise ValueError("Path doesn't exist")
+
         torch.save(self.model, path)
 
-    def train(self, train_csv, data_dir):
+    def train(self, train_csv: str, data_dir: str, score, criterion=nn.BCELoss()):
         """
 
         :return: Przetrenowany model
         :rtype:
         """
-        ratio = 0.8
-        train_transform = TransformImage(input_size=self.model_config['input_size'],
-                                         mean=self.model_config['preprocessing']['normalization']['mean'],
-                                         std=self.model_config['preprocessing']['normalization']['std'],
-                                         preprocessing=self.model_config['preprocessing'],
-                                         augmentations=self.model_config['augmentation'])
 
-        val_transform = TransformImage(input_size=self.model_config['input_size'],
+        if not os.path.exists(train_csv):
+            raise ValueError("Train csv doesn't exist")
+
+        if not os.path.exists(data_dir):
+            raise ValueError("Data dir doesn't exist")
+
+        if not callable(criterion):
+            raise ValueError("Criterion should be function")
+
+        if not callable(score):
+            raise ValueError("Score should be function")
+
+        ratio = 0.8
+
+        train_dataset = create_dataset(input_size=self.model_config['input_size'],
                                        mean=self.model_config['preprocessing']['normalization']['mean'],
                                        std=self.model_config['preprocessing']['normalization']['std'],
                                        preprocessing=self.model_config['preprocessing'],
-                                       augmentations=None)
+                                       augmentations=self.model_config['augmentation'],
+                                       csv_file=train_csv,
+                                       data_dir=data_dir,
+                                       labels=self.labels,
+                                       )
 
-        train_dataset = ImageDataset(csv_file=train_csv,
+        val_dataset = create_dataset(input_size=self.model_config['input_size'],
+                                     mean=self.model_config['preprocessing']['normalization']['mean'],
+                                     std=self.model_config['preprocessing']['normalization']['std'],
+                                     preprocessing=self.model_config['preprocessing'],
+                                     augmentations=None,
+                                     csv_file=train_csv,
                                      data_dir=data_dir,
-                                     labels=self.labels,
-                                     transform=train_transform)
-
-        val_dataset = ImageDataset(csv_file=train_csv,
-                                   data_dir=data_dir,
-                                   labels=self.labels,
-                                   transform=val_transform)
+                                     labels=self.labels)
 
         l = int(len(train_dataset) * ratio)
         train_dataset = Subset(train_dataset, range(0, l))
         val_dataset = Subset(val_dataset, range(l, len(val_dataset)))
-        params = {'batch_size': self.model_config["batch_size"],
-                  'shuffle': True,
-                  'num_workers': self.model_config["num_workers"]}
-        dataloader = {"train": DataLoader(train_dataset, **params),
-                      "val": DataLoader(val_dataset, **params)}
 
+        dataloader = {"train": DataLoader(train_dataset, **self.params),
+                      "val": DataLoader(val_dataset, **self.params)}
 
         since = time.time()
 
@@ -209,9 +174,9 @@ class Model:
         headers.extend(self.labels)
         stats = {'train': pd.DataFrame(columns=headers),
                  'val': pd.DataFrame(columns=headers)}
-        #stats_dir = stats_dir
-        #os.mkdir(stats_dir)
-        #stats_path = {'train': stats_dir + self.model_id + '_train_stats.csv',
+        # stats_dir = stats_dir
+        # os.mkdir(stats_dir)
+        # stats_path = {'train': stats_dir + self.model_id + '_train_stats.csv',
         #              'val': stats_dir + self.model_id + '_val_stats.csv'}
 
         epoch_score_history = [0, 0, 0]
@@ -243,12 +208,12 @@ class Model:
                         if self.is_inception and phase == 'train':
                             # From https://discuss.pytorch.org/t/how-to-optimize-inception-model-with-auxiliary-classifiers/7958
                             outputs, aux_outputs = self.model(inputs)
-                            loss1 = self.criterion(outputs, labels)
-                            loss2 = self.criterion(aux_outputs, labels)
+                            loss1 = criterion(outputs, labels)
+                            loss2 = criterion(aux_outputs, labels)
                             loss = loss1 + 0.4 * loss2
                         else:
                             outputs = self.model(inputs)
-                            loss = self.criterion(outputs, labels)
+                            loss = criterion(outputs, labels)
 
                         # backward + optimize only if in training phase
                         if phase == 'train':
@@ -259,12 +224,12 @@ class Model:
                     trues = trues.append(pd.DataFrame(labels.tolist(), columns=self.labels))
 
                     running_loss += loss.item()
-                    score, _ = self.score(pd.DataFrame(outputs.tolist(), columns=self.labels),
+                    score, _ = score(pd.DataFrame(outputs.tolist(), columns=self.labels),
                                           pd.DataFrame(labels.tolist(), columns=self.labels))
                     # bar update
                     bar.update(i, values=[("loss", loss.item()), ('score', score)])
 
-                score, labels_score = self.score(preds, trues)
+                score, labels_score = score(preds, trues)
                 epoch_loss = running_loss * inputs.size(0) / len(dataloader[phase].dataset)
 
                 bar.add(1, values=[("epoch_loss", epoch_loss), ('epoch_score', score)])
@@ -272,7 +237,7 @@ class Model:
                 epoch_stats = [epoch + 1, epoch_loss, score]
                 epoch_stats.extend(labels_score)
                 stats[phase] = stats[phase].append(pd.DataFrame([epoch_stats], columns=headers), ignore_index=True)
-                #stats[phase].to_csv(path_or_buf=stats_path[phase], index=False)
+                # stats[phase].to_csv(path_or_buf=stats_path[phase], index=False)
 
                 if phase == 'train':
                     epoch_score_history[epoch % 3] = score
@@ -284,27 +249,28 @@ class Model:
 
         return self.model, stats
 
-    def test(self, test_csv, data_dir):
+    def test(self, test_csv: str, data_dir: str) -> pd.DataFrame:
         """
 
         :return: Obiekt z odpowiedziami modelu na testowy zbiór danych
         :rtype: pd.DataFrame
         """
+        if not os.path.exists(test_csv):
+            raise ValueError("Test csv doesn't exist")
 
-        test_transform = TransformImage(input_size=self.model_config['input_size'],
-                                        mean=self.model_config['preprocessing']['normalization']['mean'],
-                                        std=self.model_config['preprocessing']['normalization']['std'],
-                                        preprocessing=self.model_config['preprocessing'],
-                                        augmentations=None)
+        if not os.path.exists(data_dir):
+            raise ValueError("Data dir doesn't exist")
 
-        test_dataset = ImageDataset(csv_file=test_csv,
-                                    data_dir=data_dir,
-                                    labels=self.labels,
-                                    transform=test_transform)
-        params = {'batch_size': self.model_config["batch_size"],
-                  'shuffle': True,
-                  'num_workers': self.model_config["num_workers"]}
-        dataloader = DataLoader(test_dataset, **params)
+        test_dataset = create_dataset(input_size=self.model_config['input_size'],
+                                      mean=self.model_config['preprocessing']['normalization']['mean'],
+                                      std=self.model_config['preprocessing']['normalization']['std'],
+                                      preprocessing=self.model_config['preprocessing'],
+                                      augmentations=None,
+                                      csv_file=test_csv,
+                                      data_dir=data_dir,
+                                      labels=self.labels)
+
+        dataloader = DataLoader(test_dataset, **self.params)
 
         bar = pkbar.Kbar(target=len(dataloader), width=50, always_stateful=True)
         answer = pd.DataFrame(columns=self.labels)
@@ -322,25 +288,7 @@ class Model:
         return answer
 
     @staticmethod
-    def set_criterion(criterion_name):
-        """
-
-        :param criterion_name: Nazwa kryterium, którego będzie używać model sieci
-        :type criterion_name: string
-        :return: Obiekt wybranego kryterium
-        :rtype:
-        """
-        if criterion_name == 'BCE':
-            criterion = nn.BCELoss()
-        elif criterion_name == 'BCEL':
-            criterion = nn.BCEWithLogitsLoss()
-        else:
-            criterion = nn.MSELoss()
-
-        return criterion
-
-    @staticmethod
-    def rank_preds(preds) -> pd.DataFrame:
+    def rank_preds(preds: pd.DataFrame) -> pd.DataFrame:
         """
 
         :param preds: Przewidywane wartości
@@ -350,11 +298,10 @@ class Model:
         """
         rpreds = pd.DataFrame(preds)
         for col in preds.columns.values:
-            print()
             rpreds.loc[:, col] = preds.sort_values(by=col, ascending=False).index
         return rpreds
 
-    def show_random_images(self, num) -> None:
+    def show_random_images(self, num: int) -> None:
         """
 
         :param num: Liczba obrazów do wyświetlenia
@@ -377,28 +324,3 @@ class Model:
             plt.axis('off')
             plt.imshow(image)
         plt.show()
-
-    @staticmethod
-    def score(preds: pd.DataFrame, trues: pd.DataFrame):
-        """ Funkcja obliczająca wynik modelu sieci neuronowej
-
-        :param preds: Wartości przewidywane przez model
-        :type preds: pd.DataFrame
-        :param trues: Wartości prawdziwe
-        :type trues: pd.DataFrame
-        :return: Ogólny wynik modelu oraz wyniki dla każdej z cech w postaci listy
-        :rtype: float, list
-        """
-        labels_score = []
-
-        score = 0.0
-        for p, t in zip(preds, trues):
-            ap = 0.0
-            if np.sum(trues[t]) != 0:
-                ap = average_precision_score(trues[t], preds[p])
-            labels_score.append(ap)
-            score += ap
-
-        score /= preds.shape[1]
-
-        return score, labels_score
