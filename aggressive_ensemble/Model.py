@@ -60,8 +60,6 @@ class Model:
         if cpu_or_gpu not in ["cpu", "gpu"]:
             raise ValueError("Device should be either cpu or gpu")
 
-
-
         self.device = cpu_or_gpu
         if cpu_or_gpu == "gpu":
             if not torch.cuda.is_available():
@@ -118,7 +116,7 @@ class Model:
 
         torch.save(self.model, path)
 
-    def train(self, train_csv: str, data_dir: str, score, criterion=nn.BCELoss()):
+    def train(self, train_csv: str, data_dir: str, score_function, criterion=nn.BCELoss()):
         """
 
         :return: Przetrenowany model
@@ -134,7 +132,7 @@ class Model:
         if not callable(criterion):
             raise ValueError("Criterion should be function")
 
-        if not callable(score):
+        if not callable(score_function):
             raise ValueError("Score should be function")
 
         ratio = 0.8
@@ -224,12 +222,12 @@ class Model:
                     trues = trues.append(pd.DataFrame(labels.tolist(), columns=self.labels))
 
                     running_loss += loss.item()
-                    score, _ = score(pd.DataFrame(outputs.tolist(), columns=self.labels),
-                                          pd.DataFrame(labels.tolist(), columns=self.labels))
+                    score, _ = score_function(pd.DataFrame(outputs.tolist(), columns=self.labels),
+                                     pd.DataFrame(labels.tolist(), columns=self.labels))
                     # bar update
                     bar.update(i, values=[("loss", loss.item()), ('score', score)])
 
-                score, labels_score = score(preds, trues)
+                score, labels_score = score_function(preds, trues)
                 epoch_loss = running_loss * inputs.size(0) / len(dataloader[phase].dataset)
 
                 bar.add(1, values=[("epoch_loss", epoch_loss), ('epoch_score', score)])

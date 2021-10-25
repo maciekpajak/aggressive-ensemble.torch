@@ -63,7 +63,7 @@ class Ensemble:
     def __str__(self):
         return str(self.ensemble)
 
-    def train(self, train_csv: str, data_dir: str, score, criterion=nn.BCELoss()):
+    def train(self, train_csv: str, data_dir: str, score_function, criterion=nn.BCELoss()):
         """
 
         :return:
@@ -75,7 +75,7 @@ class Ensemble:
         if not os.path.exists(data_dir):
             raise ValueError("Data dir doesn't exist")
 
-        if not callable(score):
+        if not callable(score_function):
             raise ValueError("Score should be function")
 
         if not callable(criterion):
@@ -93,7 +93,7 @@ class Ensemble:
 
             # trening modelu
             print("Training model: " + model)
-            (_, stats) = m.train(train_csv, data_dir, score, criterion)
+            (_, stats) = m.train(train_csv, data_dir, score_function, criterion)
 
             self.models[model]["path"] = self.root_dir + "ensemble_models/" + model + ".pth"  # zmiana sciezki modelu
 
@@ -153,7 +153,7 @@ class Ensemble:
         pass
 
     @staticmethod
-    def combine_answers(answers: List[pd.DataFrame]):
+    def combine_answers(answers: List[pd.DataFrame]) -> pd.DataFrame:
         """
 
         :param answers:
