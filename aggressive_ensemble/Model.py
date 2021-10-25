@@ -1,30 +1,19 @@
 import os
-import types
+import time
 import warnings
 
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import pkbar
 import torch
-from torch import optim
 from torch import nn
+from torch import optim
 from torch.utils.data import DataLoader, Subset
 from torchvision import transforms
-import matplotlib.pyplot as plt
 
-import pandas as pd
-
-import time
-import pkbar
-
-from sklearn.metrics import average_precision_score
-import numpy as np
-
-from Models.init_model import init_model
 from Dataset.ImageDataset import ImageDataset
-from Transforms.TransformImage import TransformImage
-
-
-def create_dataset(input_size, normalization, preprocessing, augmentations, csv_file, data_dir, labels):
-    transform = TransformImage(input_size, normalization, preprocessing, augmentations)
-    return ImageDataset(csv_file, data_dir, labels, transform)
+from Transforms.Transforms import *
 
 
 class Model:
@@ -67,6 +56,7 @@ class Model:
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self.model_config = model_config
+
         self.labels = labels
 
         self.model = torch.load(self.model_config['path'], map_location=torch.device(self.device))
@@ -79,6 +69,17 @@ class Model:
         self.params = {'batch_size': self.model_config["batch_size"],
                        'shuffle': True,
                        'num_workers': self.model_config["num_workers"]}
+
+        self.preprocessing = model_config["preprocessing"]
+        if self.preprocessing is None:
+            self.preprocessing = []
+        self.augmentation = model_config["augmentation"]
+        if self.augmentation is None:
+            self.augmentation = []
+        self.adapt = [Rescale(output_size=(model_config["input_size"], model_config["input_size"])),
+                      ToTensor(),
+                      Normalize(mean=model_config["normalization"]["mean"],
+                                std=model_config["normalization"]["std"])]
 
     def __str__(self):
         return str(self.model_config)
@@ -137,22 +138,12 @@ class Model:
 
         ratio = 0.8
 
-        train_dataset = create_dataset(input_size=self.model_config['input_size'],
-                                       normalization=self.model_config['normalization'],
-                                       preprocessing=self.model_config['preprocessing'],
-                                       augmentations=self.model_config['augmentation'],
-                                       csv_file=train_csv,
-                                       data_dir=data_dir,
-                                       labels=self.labels,
-                                       )
 
-        val_dataset = create_dataset(input_size=self.model_config['input_size'],
-                                     normalization=self.model_config['normalization'],
-                                     preprocessing=self.model_config['preprocessing'],
-                                       augmentations=self.model_config['augmentation'],
-                                     csv_file=train_csv,
-                                     data_dir=data_dir,
-                                     labels=self.labels)
+        train_tranform = transforms.Compose(self.preprocessing + self.augmentation + self.adapt)
+        train_dataset =  ImageDataset(train_csv, data_dir, self.labels, train_tranform)
+
+        val_tranform = transforms.Compose(self.preprocessing + self.adapt)
+        val_dataset = ImageDataset(train_csv, data_dir, self.labels, val_tranform)
 
         l = int(len(train_dataset) * ratio)
         train_dataset = Subset(train_dataset, range(0, l))
@@ -257,13 +248,8 @@ class Model:
         if not os.path.exists(data_dir):
             raise ValueError("Data dir doesn't exist")
 
-        test_dataset = create_dataset(input_size=self.model_config['input_size'],
-                                      normalization=self.model_config['normalization'],
-                                      preprocessing=self.model_config['preprocessing'],
-                                      augmentations=self.model_config['augmentation'],
-                                      csv_file=test_csv,
-                                      data_dir=data_dir,
-                                      labels=self.labels)
+        test_tranform = transforms.Compose(self.preprocessing + self.adapt)
+        test_dataset = ImageDataset(test_csv, data_dir, self.labels, test_tranform)
 
         dataloader = DataLoader(test_dataset, **self.params)
 
