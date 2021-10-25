@@ -143,7 +143,7 @@ class Normalize(object):
 class Rescale(object):
     """Transformacja skalująca obraz"""
 
-    def __init__(self, output_size: int | (int, int)):
+    def __init__(self, output_size: Union[int, tuple[int, int]]):
         if not isinstance(output_size, int) or not isinstance(output_size, (int, int)):
             ValueError("Output size must be int or (int, int)")
         if isinstance(output_size, int):
