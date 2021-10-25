@@ -22,8 +22,8 @@ from Dataset.ImageDataset import ImageDataset
 from Transforms.TransformImage import TransformImage
 
 
-def create_dataset(input_size, mean, std, preprocessing, augmentations, csv_file, data_dir, labels):
-    transform = TransformImage(input_size, mean, std, preprocessing, augmentations)
+def create_dataset(input_size, normalization, preprocessing, augmentations, csv_file, data_dir, labels):
+    transform = TransformImage(input_size, normalization, preprocessing, augmentations)
     return ImageDataset(csv_file, data_dir, labels, transform)
 
 
@@ -138,8 +138,7 @@ class Model:
         ratio = 0.8
 
         train_dataset = create_dataset(input_size=self.model_config['input_size'],
-                                       mean=self.model_config['preprocessing']['normalization']['mean'],
-                                       std=self.model_config['preprocessing']['normalization']['std'],
+                                       normalization=self.model_config['normalization'],
                                        preprocessing=self.model_config['preprocessing'],
                                        augmentations=self.model_config['augmentation'],
                                        csv_file=train_csv,
@@ -148,10 +147,9 @@ class Model:
                                        )
 
         val_dataset = create_dataset(input_size=self.model_config['input_size'],
-                                     mean=self.model_config['preprocessing']['normalization']['mean'],
-                                     std=self.model_config['preprocessing']['normalization']['std'],
+                                     normalization=self.model_config['normalization'],
                                      preprocessing=self.model_config['preprocessing'],
-                                     augmentations=None,
+                                       augmentations=self.model_config['augmentation'],
                                      csv_file=train_csv,
                                      data_dir=data_dir,
                                      labels=self.labels)
@@ -260,10 +258,9 @@ class Model:
             raise ValueError("Data dir doesn't exist")
 
         test_dataset = create_dataset(input_size=self.model_config['input_size'],
-                                      mean=self.model_config['preprocessing']['normalization']['mean'],
-                                      std=self.model_config['preprocessing']['normalization']['std'],
+                                      normalization=self.model_config['normalization'],
                                       preprocessing=self.model_config['preprocessing'],
-                                      augmentations=None,
+                                      augmentations=self.model_config['augmentation'],
                                       csv_file=test_csv,
                                       data_dir=data_dir,
                                       labels=self.labels)
