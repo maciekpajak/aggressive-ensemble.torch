@@ -1,3 +1,5 @@
+from typing import Union
+
 import torch
 import numpy as np
 import random
@@ -12,6 +14,7 @@ __all__ = ['Rescale', 'RotateToHorizontal', 'EdgeDetection', 'ChangeColorspace',
 
 class RotateToHorizontal(object):
     """Transformacja obracająca obiekt na obrazie do pozycji horyzontalnej"""
+
     def __call__(self, sample):
         """
 
@@ -44,6 +47,7 @@ class RotateToHorizontal(object):
 
 class EdgeDetection(object):
     """Transformacja przeprowadzająca detekcję krawędzi"""
+
     def __call__(self, sample):
         image, polygon, labels = sample['image'], sample['polygon'], sample['labels']
         t = iaa.EdgeDetect(alpha=1.0)
@@ -57,10 +61,16 @@ class EdgeDetection(object):
 class ChangeColorspace(object):
     """Transformacja zmieniająca przestrzeń kolorystyczną obrazu
 
-    :param from_colorspace: Pierwotna przestrzeń kolorystyczna obrazu
+    :param from_colorspace: Pierwotna przestrzeń kolorystyczna obrazu Allowed strings are: 
+    "RGB", "BGR", "GRAY", "CIE", "YCrCb", "HSV", "HLS", "Lab", "Luv".
     :param to_colorspace: Przestrzeń kolorystyczna obrazu po zmianie
     """
-    def __init__(self, from_colorspace, to_colorspace):
+
+    def __init__(self, from_colorspace: str, to_colorspace: str):
+        if from_colorspace not in ["RGB", "BGR", "GRAY", "CIE", "YCrCb", "HSV", "HLS", "Lab", "Luv"]:
+            ValueError("Allowed strings are: RGB, BGR, GRAY, CIE, YCrCb, HSV, HLS, Lab, Luv")
+        if to_colorspace not in ["RGB", "BGR", "GRAY", "CIE", "YCrCb", "HSV", "HLS", "Lab", "Luv"]:
+            ValueError("Allowed strings are: RGB, BGR, GRAY, CIE, YCrCb, HSV, HLS, Lab, Luv")
         self.from_colorspace = from_colorspace
         self.to_colorspace = to_colorspace
 
@@ -77,6 +87,7 @@ class ChangeColorspace(object):
 
 class ExtractPolygon(object):
     """Transformacja ekstachująca z obrazu sam obiekt (na podstawie podanych punktów wierzchołków obiektu)"""
+
     def __call__(self, sample):
         image, polygon, labels = sample['image'], sample['polygon'], sample['labels']
         p = Polygon(polygon)
@@ -90,6 +101,7 @@ class ExtractPolygon(object):
 
 class Crop(object):
     """Transformacja przycinająca obraz"""
+
     def __call__(self, sample):
         image, polygon, labels = sample['image'], sample['polygon'], sample['labels']
 
@@ -113,7 +125,8 @@ class Crop(object):
 
 class Normalize(object):
     """Transformacja normalizująca obraz"""
-    def __init__(self, mean, std):
+
+    def __init__(self, mean: float, std: float):
         self.mean = mean
         self.std = std
 
@@ -124,13 +137,21 @@ class Normalize(object):
         return {'image': img, 'polygon': polygon, 'labels': labels}
 
     def __str__(self):
-        return "Normalize image mean=" + self.mean + ", std=" + self.std
+        return "Normalize image mean=" + str(self.mean) + ", std=" + str(self.std)
 
 
 class Rescale(object):
     """Transformacja skalująca obraz"""
-    def __init__(self, output_size):
-        assert isinstance(output_size, (int, tuple))
+
+    def __init__(self, output_size: int | (int, int)):
+        if not isinstance(output_size, int) or not isinstance(output_size, (int, int)):
+            ValueError("Output size must be int or (int, int)")
+        if isinstance(output_size, int):
+            if output_size <= 0:
+                ValueError("Output size must greater than 0")
+        if isinstance(output_size, (int, int)):
+            if output_size[0] <= 0 or output_size[1] <= 0:
+                ValueError("Output size must greater than 0")
         self.output_size = output_size
 
     def __call__(self, sample):
@@ -158,7 +179,7 @@ class Rescale(object):
         return {'image': img, 'polygon': polygon, 'labels': labels}
 
     def __str__(self):
-        return "Rescale image to " + self.output_size
+        return "Rescale image to " + str(self.output_size)
 
 
 class ToTensor(object):
@@ -177,6 +198,7 @@ class ToTensor(object):
 
 class RandomHorizontalFlip(object):
     """Transformacja losowo odbijająca obraz w pozycji horyzontalnej"""
+
     def __call__(self, sample):
         image, polygon, labels = sample['image'], sample['polygon'], sample['labels']
 
@@ -191,6 +213,7 @@ class RandomHorizontalFlip(object):
 
 class RandomVerticalFlip(object):
     """Transformacja losowo odbijająca obraz w pozycji wertykalnej """
+
     def __call__(self, sample):
         image, polygon, labels = sample['image'], sample['polygon'], sample['labels']
 
@@ -205,6 +228,7 @@ class RandomVerticalFlip(object):
 
 class RandomRotate(object):
     """Transformacja obracająca obiekt o losowy kąt"""
+
     def __call__(self, sample):
         image, polygon, labels = sample['image'], sample['polygon'], sample['labels']
 
@@ -219,6 +243,7 @@ class RandomRotate(object):
 
 class SwitchRGBChannels(object):
     """Transformacja zamieniająca kanały RGB"""
+
     def __call__(self, sample):
         image, polygon, labels = sample['image'], sample['polygon'], sample['labels']
 

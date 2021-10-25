@@ -4,6 +4,9 @@ import pandas as pd
 import numpy as np
 from PIL import Image
 from pathlib import Path
+import os
+
+from typing import List
 
 
 class ImageDataset(Dataset):
@@ -19,7 +22,7 @@ class ImageDataset(Dataset):
     :type transform:
     """
 
-    def __init__(self, csv_file, data_dir, labels, transform=None):
+    def __init__(self, csv_file: str, data_dir: str, labels: List[str], transform=None):
         """
 
         :param csv_file:
@@ -31,6 +34,18 @@ class ImageDataset(Dataset):
         :param transform:
         :type transform:
         """
+        if not os.path.exists(csv_file):
+            raise ValueError("Train csv doesn't exist")
+
+        if not os.path.exists(data_dir):
+            raise ValueError("Data dir doesn't exist")
+
+        if labels is []:
+            raise ValueError("Labels list cannot be empty")
+
+        if not callable(transform):
+            raise ValueError("Transform should be a function")
+
         self.df = pd.get_dummies(pd.read_csv(csv_file))
         columns = self.df.columns.to_list()
         missing_cols = []
