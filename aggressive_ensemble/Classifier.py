@@ -16,7 +16,7 @@ from Dataset.ImageDataset import ImageDataset
 from Transforms.Transforms import *
 
 
-class Model:
+class Classifier:
     """ Klasa reprezentująca pojedynczy model sieci neuronowej.
     Oprócz samego modelu przechowuje wymagane atrybuty
 

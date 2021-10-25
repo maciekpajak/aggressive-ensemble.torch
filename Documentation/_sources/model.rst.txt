@@ -1,8 +1,8 @@
 =====
-Model
+Classifier
 =====
 
-Model
+Classifier
 =====
-.. automodule:: aggressive_ensemble.Model
+.. automodule:: aggressive_ensemble.Classifier
     :members:

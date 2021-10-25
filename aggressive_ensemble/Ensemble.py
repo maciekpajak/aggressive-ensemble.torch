@@ -7,7 +7,7 @@ import os
 from torch import nn
 from typing import List
 
-from aggressive_ensemble.Model import Model
+from aggressive_ensemble.Classifier import Classifier
 
 
 class Ensemble:
@@ -89,7 +89,7 @@ class Ensemble:
         print("Training...")
         for model in self.models:
             # zaladowanie modelu
-            m = Model(self.labels, self.models[model], self.device)
+            m = Classifier(self.labels, self.models[model], self.device)
 
             # trening modelu
             print("Training model: " + model)
@@ -128,7 +128,7 @@ class Ensemble:
             print("Testing subensemble: " + subensemble)
             for model in self.ensemble[subensemble]["models"]:
                 # zaladowanie modelu
-                m = Model(self.labels, self.models[model], self.device)
+                m = Classifier(self.labels, self.models[model], self.device)
                 ans = m.test(test_csv, data_dir)
                 answers.extend([ans])
 

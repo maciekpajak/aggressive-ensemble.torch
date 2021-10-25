@@ -9,7 +9,7 @@ Models
 
     models
 
-Model Init
+Classifier Init
 ==========
 .. automodule:: aggressive_ensemble.Models.init_model
    :members:

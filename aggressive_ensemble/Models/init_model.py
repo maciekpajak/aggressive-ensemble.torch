@@ -17,7 +17,7 @@ def init_model(model_name, num_classes, feature_extract, use_pretrained=True):
     :rtype: model,int,float,float
     """
 
-    assert model_name in __all__, "Model doesn't exist. Possible models: {}".format(__all__)
+    assert model_name in __all__, "Classifier doesn't exist. Possible models: {}".format(__all__)
     model = None
     input_size = 0
     mean = [0, 0, 0]
@@ -68,7 +68,7 @@ def init_model(model_name, num_classes, feature_extract, use_pretrained=True):
                                                     feature_extract=feature_extract,
                                                     use_pretrained=use_pretrained)
     else:
-        print("Model doesn't exist. Possible models: ")
+        print("Classifier doesn't exist. Possible models: ")
         print(__all__)
         exit()
 
