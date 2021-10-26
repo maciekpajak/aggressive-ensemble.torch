@@ -7,7 +7,6 @@ import numpy as np
 import pandas as pd
 import pkbar
 import torch
-from torch import nn
 from torch import optim
 from torch.utils.data import DataLoader, Subset
 from torchvision import transforms
@@ -24,8 +23,8 @@ class Classifier:
     :type labels: list
     :param model_config: konfiguracja modelu
     :type model_config: dict
-    :param device: gpu or cpu
-    :type device: string
+    :param cpu_or_gpu: gpu or cpu
+    :type cpu_or_gpu: string
 
     """
 
@@ -36,8 +35,8 @@ class Classifier:
         :type labels: list
         :param model_config: konfiguracja modelu
         :type model_config: dict
-        :param device: Rodziaj używanego procesora: gpu albo cpu
-        :type device: string
+        :param cpu_or_gpu: Rodziaj używanego procesora: gpu albo cpu
+        :type cpu_or_gpu: string
         """
 
         if not labels:
@@ -59,8 +58,11 @@ class Classifier:
 
         self.labels = labels
 
+        if not os.path.exists(self.model_config['path']):
+            raise ValueError("Provided model path doesn't exist")
         self.model = torch.load(self.model_config['path'], map_location=torch.device(self.device))
 
+        self.criterion = model_config["criterion"]
         self.optimizer = optim.SGD(self.__get_params_to_update(), lr=model_config["lr"],
                                    momentum=model_config["momentum"])
 
@@ -117,33 +119,29 @@ class Classifier:
 
         torch.save(self.model, path)
 
-    def train(self, train_csv: str, data_dir: str, score_function, criterion=nn.BCELoss()):
+    def train(self, train_df: pd.DataFrame, data_dir: str, score_function):
         """
 
         :return: Przetrenowany model
         :rtype:
         """
 
-        if not os.path.exists(train_csv):
-            raise ValueError("Train csv doesn't exist")
+        if train_df.empty:
+            raise ValueError("DataFrame cannot be empty")
 
         if not os.path.exists(data_dir):
             raise ValueError("Data dir doesn't exist")
-
-        if not callable(criterion):
-            raise ValueError("Criterion should be function")
 
         if not callable(score_function):
             raise ValueError("Score should be function")
 
         ratio = 0.8
 
-
         train_tranform = transforms.Compose(self.preprocessing + self.augmentation + self.adapt)
-        train_dataset =  ImageDataset(train_csv, data_dir, self.labels, train_tranform)
+        train_dataset = ImageDataset(train_df, data_dir, self.labels, train_tranform)
 
         val_tranform = transforms.Compose(self.preprocessing + self.adapt)
-        val_dataset = ImageDataset(train_csv, data_dir, self.labels, val_tranform)
+        val_dataset = ImageDataset(train_df, data_dir, self.labels, val_tranform)
 
         l = int(len(train_dataset) * ratio)
         train_dataset = Subset(train_dataset, range(0, l))
@@ -195,12 +193,12 @@ class Classifier:
                         if self.is_inception and phase == 'train':
                             # From https://discuss.pytorch.org/t/how-to-optimize-inception-model-with-auxiliary-classifiers/7958
                             outputs, aux_outputs = self.model(inputs)
-                            loss1 = criterion(outputs, labels)
-                            loss2 = criterion(aux_outputs, labels)
+                            loss1 = self.criterion(outputs, labels)
+                            loss2 = self.criterion(aux_outputs, labels)
                             loss = loss1 + 0.4 * loss2
                         else:
                             outputs = self.model(inputs)
-                            loss = criterion(outputs, labels)
+                            loss = self.criterion(outputs, labels)
 
                         # backward + optimize only if in training phase
                         if phase == 'train':
@@ -212,7 +210,7 @@ class Classifier:
 
                     running_loss += loss.item()
                     score, _ = score_function(pd.DataFrame(outputs.tolist(), columns=self.labels),
-                                     pd.DataFrame(labels.tolist(), columns=self.labels))
+                                              pd.DataFrame(labels.tolist(), columns=self.labels))
                     # bar update
                     bar.update(i, values=[("loss", loss.item()), ('score', score)])
 
@@ -236,20 +234,20 @@ class Classifier:
 
         return self.model, stats
 
-    def test(self, test_csv: str, data_dir: str) -> pd.DataFrame:
+    def test(self, test_df: pd.DataFrame, data_dir: str) -> pd.DataFrame:
         """
 
         :return: Obiekt z odpowiedziami modelu na testowy zbiór danych
         :rtype: pd.DataFrame
         """
-        if not os.path.exists(test_csv):
-            raise ValueError("Test csv doesn't exist")
+        if test_df.empty:
+            raise ValueError("DataFrame cannot be empty")
 
         if not os.path.exists(data_dir):
             raise ValueError("Data dir doesn't exist")
 
         test_tranform = transforms.Compose(self.preprocessing + self.adapt)
-        test_dataset = ImageDataset(test_csv, data_dir, self.labels, test_tranform)
+        test_dataset = ImageDataset(test_df, data_dir, self.labels, test_tranform)
 
         dataloader = DataLoader(test_dataset, **self.params)
 
@@ -264,23 +262,7 @@ class Classifier:
                 bar.update(i)
             bar.add(1)
         answer.index.name = 'tag_id'
-        answer = self.rank_preds(answer)
-        answer = answer.reset_index(drop=True)
         return answer
-
-    @staticmethod
-    def rank_preds(preds: pd.DataFrame) -> pd.DataFrame:
-        """
-
-        :param preds: Przewidywane wartości
-        :type preds: pd.DataFrame
-        :return: Uszeregowane przewiywane wratości od najbardziej prawdopodobnych do najmniej
-        :rtype: pd.DataFrame
-        """
-        rpreds = pd.DataFrame(preds)
-        for col in preds.columns.values:
-            rpreds.loc[:, col] = preds.sort_values(by=col, ascending=False).index
-        return rpreds
 
     def show_random_images(self, num: int) -> None:
         """

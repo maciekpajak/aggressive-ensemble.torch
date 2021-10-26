@@ -22,7 +22,7 @@ class ImageDataset(Dataset):
     :type transform:
     """
 
-    def __init__(self, csv_file: str, data_dir: str, labels: List[str], transform=None):
+    def __init__(self, df: pd.DataFrame, data_dir: str, labels: List[str], transform=None):
         """
 
         :param csv_file:
@@ -34,8 +34,8 @@ class ImageDataset(Dataset):
         :param transform:
         :type transform:
         """
-        if not os.path.exists(csv_file):
-            raise ValueError("Train csv doesn't exist")
+        if df.empty:
+            raise ValueError("DataFrame cannot be empty")
 
         if not os.path.exists(data_dir):
             raise ValueError("Data dir doesn't exist")
@@ -46,7 +46,7 @@ class ImageDataset(Dataset):
         if not callable(transform):
             raise ValueError("Transform should be a function")
 
-        self.df = pd.get_dummies(pd.read_csv(csv_file))
+        self.df = pd.get_dummies(df)
         columns = self.df.columns.to_list()
         missing_cols = []
         for label in labels:

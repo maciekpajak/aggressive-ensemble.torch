@@ -10,6 +10,64 @@ from typing import List
 from aggressive_ensemble.Classifier import Classifier
 
 
+def rank_preds(preds: pd.DataFrame) -> pd.DataFrame:
+    """
+
+    :param preds: Przewidywane wartości
+    :type preds: pd.DataFrame
+    :return: Uszeregowane przewiywane wratości od najbardziej prawdopodobnych do najmniej
+    :rtype: pd.DataFrame
+    """
+    rpreds = pd.DataFrame(preds)
+    for col in preds.columns.values:
+        rpreds.loc[:, col] = preds.sort_values(by=col, ascending=False).index
+    return rpreds
+
+
+def combine_answers(answers: List[pd.DataFrame]) -> pd.DataFrame:
+    """
+
+    :param answers:
+    :type answers:
+    :return:
+    :rtype:
+    """
+    # answers = list(answer.values())
+
+    tags = answers[0].iloc[:, 0].values
+    tmp = answers[0].copy(deep=False).set_index(tags)
+
+    for col in tmp.columns.values:
+        for tag in tags:
+            rank = 0.0
+            for ans in answers:
+                rank += ans[ans[col] == tag].index.values[0]
+            tmp.loc[tag, col] = rank / len(answers)
+
+    rpreds = tmp.copy(deep=False)
+    for col in tmp.columns.values:
+        rpreds.loc[:, col] = tmp.sort_values(by=col, ascending=True).index
+    rpreds = rpreds.reset_index(drop=True)
+
+    return rpreds
+
+
+def combine_answers_by_probabilities(answers: List[pd.DataFrame]) -> pd.DataFrame:
+    """
+
+    :param answers:
+    :type answers:
+    :return:
+    :rtype:
+    """
+    mean = answers[0] - answers[0]
+    for ans in answers:
+        mean = mean + ans
+    mean = mean / len(answers)
+
+    return mean
+
+
 class Ensemble:
     """
     Klasa reprezentująca komitet sieci neuronowych
@@ -63,23 +121,20 @@ class Ensemble:
     def __str__(self):
         return str(self.ensemble)
 
-    def train(self, train_csv: str, data_dir: str, score_function, criterion=nn.BCELoss()):
+    def train(self, train_df: pd.DataFrame, data_dir: str, score_function):
         """
 
         :return:
         :rtype:
         """
-        if not os.path.exists(train_csv):
-            raise ValueError("Train csv doesn't exist")
+        if train_df.empty:
+            raise ValueError("DataFrame cannot be empty")
 
         if not os.path.exists(data_dir):
             raise ValueError("Data dir doesn't exist")
 
         if not callable(score_function):
             raise ValueError("Score should be function")
-
-        if not callable(criterion):
-            raise ValueError("Criterion should be function")
 
         train_stats_path = self.root_dir + "training_stats/"
         if not os.path.exists(train_stats_path):
@@ -93,7 +148,7 @@ class Ensemble:
 
             # trening modelu
             print("Training model: " + model)
-            (_, stats) = m.train(train_csv, data_dir, score_function, criterion)
+            (_, stats) = m.train(train_df, data_dir, score_function)
 
             self.models[model]["path"] = self.root_dir + "ensemble_models/" + model + ".pth"  # zmiana sciezki modelu
 
@@ -109,19 +164,21 @@ class Ensemble:
             stats["val"].to_csv(path_or_buf=train_stats_path + model + "val_stats.csv", index=False, header=True)
             print("Trained model val_stats saved: " + train_stats_path + model + "val_stats.csv")
 
-    def test(self, test_csv: str, data_dir: str):
+    def test(self, test_df: pd.DataFrame, data_dir: str) -> (pd.DataFrame, pd.DataFrame, pd.DataFrame):
         """
 
         :return:
         :rtype:
         """
-        if not os.path.exists(test_csv):
-            raise ValueError("Test csv doesn't exist")
+        if test_df.empty:
+            raise ValueError("DataFrame cannot be empty")
 
         if not os.path.exists(data_dir):
             raise ValueError("Data dir doesn't exist")
 
-        final_answer = pd.DataFrame(columns=self.labels)
+        answer_probabilities = pd.DataFrame(columns=self.labels)
+        answer_ranking = pd.DataFrame(columns=self.labels)
+
         print('Testing...')
         for subensemble in self.ensemble:
             answers = []
@@ -129,18 +186,21 @@ class Ensemble:
             for model in self.ensemble[subensemble]["models"]:
                 # zaladowanie modelu
                 m = Classifier(self.labels, self.models[model], self.device)
-                ans = m.test(test_csv, data_dir)
+                ans = m.test(test_df, data_dir)
                 answers.extend([ans])
 
-            answer = self.combine_answers(answers)
+            answer1 = combine_answers_by_probabilities([a for a in answers])
+            answer2 = combine_answers([rank_preds(a).reset_index(drop=True) for a in answers])
             subensemble_labels = self.ensemble[subensemble]["labels"]
-            final_answer[subensemble_labels] = answer[subensemble_labels]
+            answer_probabilities[subensemble_labels] = answer1[subensemble_labels]
+            answer_ranking[subensemble_labels] = answer2[subensemble_labels]
 
-        final_answer.to_csv(path_or_buf=self.root_dir + "answer.csv", index=False, header=True)
-        print('Answer saved as ' + self.root_dir + "answer.csv")
-        print(final_answer.head())
+        print(answer_probabilities.head())
+        answer_01 = answer_probabilities > 0.5
+        print(answer_01.head())
+        print(answer_ranking.head())
 
-        return final_answer
+        return answer_probabilities, answer_01, answer_ranking
 
     def autobuild_ensemble(self):
         """
@@ -151,31 +211,3 @@ class Ensemble:
         """
 
         pass
-
-    @staticmethod
-    def combine_answers(answers: List[pd.DataFrame]) -> pd.DataFrame:
-        """
-
-        :param answers:
-        :type answers:
-        :return:
-        :rtype:
-        """
-        # answers = list(answer.values())
-
-        tags = answers[0].iloc[:, 0].values
-        tmp = answers[0].copy(deep=False).set_index(tags)
-
-        for col in tmp.columns.values:
-            for tag in tags:
-                rank = 0.0
-                for ans in answers:
-                    rank += ans[ans[col] == tag].index.values[0]
-                tmp.loc[tag, col] = rank / len(answers)
-
-        rpreds = tmp.copy(deep=False)
-        for col in tmp.columns.values:
-            rpreds.loc[:, col] = tmp.sort_values(by=col, ascending=True).index
-        rpreds = rpreds.reset_index(drop=True)
-
-        return rpreds

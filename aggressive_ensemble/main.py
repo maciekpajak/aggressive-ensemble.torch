@@ -12,8 +12,8 @@ ensemble_structure = {
         "models": ["model1"],
     },
     "subensemble2": {
-        "labels": ["color_black"],
-        "models": ["model2"],
+        "labels": ["sunroof", "color_yellow"],
+        "models": ["model1", "model2"],
     }
 }
 
@@ -22,7 +22,7 @@ models_configs = {
         "name": "resnet50_pretrained",
         "path": "H:/Studia/Praca inżynierska/basic_models/resnet50_pretrained.pth",
         "max_epochs": 1,
-        "criterion": "BCE",
+        "criterion": nn.BCELoss(),
         "batch_size": 4,
         "num_workers": 1,
         "preprocessing": [tfms.ExtractPolygon(),
@@ -43,7 +43,7 @@ models_configs = {
         "name": "resnet152_pretrained",
         "path": "H:/Studia/Praca inżynierska/basic_models/resnet152_pretrained.pth",
         "max_epochs": 1,
-        "criterion": "BCE",
+        "criterion": nn.BCELoss(),
         "batch_size": 4,
         "num_workers": 1,
         "preprocessing": [tfms.ExtractPolygon(),
@@ -94,6 +94,8 @@ if __name__ == '__main__':
     data_dir = 'H:/Studia/Praca inżynierska/data/train/'
     train_csv = 'H:/Studia/Praca inżynierska/train_short.csv'
     test_csv = 'H:/Studia/Praca inżynierska/test_short.csv'
+    train_df = pd.DataFrame(pd.read_csv(train_csv))
+    test_df = pd.DataFrame(pd.read_csv(test_csv))
     labels = list(pd.read_csv(labels_csv))
     for model in models_configs:
         print(models_configs[model])
@@ -103,5 +105,7 @@ if __name__ == '__main__':
                         mode="auto", device="cpu")
     print(ensemble)
 
-    ensemble.train(train_csv=train_csv, data_dir=data_dir, score_function=score, criterion=nn.BCELoss())
-    ensemble.test(test_csv=test_csv, data_dir=data_dir)
+    #ensemble.train(train_df=train_df, data_dir=data_dir, score_function=score)
+    answer_probabilities, answer_01, answer_ranking  = ensemble.test(test_df=test_df, data_dir=data_dir)
+    answer_ranking.to_csv(path_or_buf="H:/Studia/Praca inżynierska/answer.csv", index=False, header=True)
+

@@ -3,7 +3,7 @@ models = {
             "name": "resnet50_pretrained",
             "path": "",
             "max_epochs": 80,
-            "criterion": "BCE",
+            "criterion": ,
             "batch_size": 32,
             "num_workers": 2,
             "preprocessing": [],

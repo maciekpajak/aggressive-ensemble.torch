@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Tuple
 
 import torch
 import numpy as np
@@ -143,15 +143,11 @@ class Normalize(object):
 class Rescale(object):
     """Transformacja skalująca obraz"""
 
-    def __init__(self, output_size: Union[int, tuple[int, int]]):
-        if not isinstance(output_size, int) or not isinstance(output_size, (int, int)):
-            ValueError("Output size must be int or (int, int)")
-        if isinstance(output_size, int):
-            if output_size <= 0:
-                ValueError("Output size must greater than 0")
-        if isinstance(output_size, (int, int)):
-            if output_size[0] <= 0 or output_size[1] <= 0:
-                ValueError("Output size must greater than 0")
+    def __init__(self, output_size: Tuple[int, int]):
+        if not isinstance(output_size, (int, int)):
+            ValueError("Output size must be (int, int)")
+        if output_size[0] <= 0 or output_size[1] <= 0:
+            ValueError("Output size must greater than 0")
         self.output_size = output_size
 
     def __call__(self, sample):
