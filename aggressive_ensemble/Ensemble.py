@@ -1,10 +1,7 @@
-import types
-
 import torch
 import pandas as pd
 import warnings
 import os
-from torch import nn
 from typing import List
 
 from aggressive_ensemble.Classifier import Classifier
@@ -18,13 +15,16 @@ def rank_preds(preds: pd.DataFrame) -> pd.DataFrame:
     :return: Uszeregowane przewiywane wratości od najbardziej prawdopodobnych do najmniej
     :rtype: pd.DataFrame
     """
+    if preds.empty:
+        ValueError("Answers list cannot be empty")
+
     rpreds = pd.DataFrame(preds)
     for col in preds.columns.values:
         rpreds.loc[:, col] = preds.sort_values(by=col, ascending=False).index
     return rpreds
 
 
-def combine_answers(answers: List[pd.DataFrame]) -> pd.DataFrame:
+def combine_answers_to_rankings(answers: List[pd.DataFrame]) -> pd.DataFrame:
     """
 
     :param answers:
@@ -33,6 +33,8 @@ def combine_answers(answers: List[pd.DataFrame]) -> pd.DataFrame:
     :rtype:
     """
     # answers = list(answer.values())
+    if answers == []:
+        ValueError("Answers list cannot be empty")
 
     tags = answers[0].iloc[:, 0].values
     tmp = answers[0].copy(deep=False).set_index(tags)
@@ -52,7 +54,7 @@ def combine_answers(answers: List[pd.DataFrame]) -> pd.DataFrame:
     return rpreds
 
 
-def combine_answers_by_probabilities(answers: List[pd.DataFrame]) -> pd.DataFrame:
+def combine_answers_to_probabilities(answers: List[pd.DataFrame]) -> pd.DataFrame:
     """
 
     :param answers:
@@ -60,6 +62,9 @@ def combine_answers_by_probabilities(answers: List[pd.DataFrame]) -> pd.DataFram
     :return:
     :rtype:
     """
+    if answers == []:
+        ValueError("Answers list cannot be empty")
+
     mean = answers[0] - answers[0]
     for ans in answers:
         mean = mean + ans
@@ -75,7 +80,10 @@ class Ensemble:
 
     """
 
-    def __init__(self, root_dir: str, labels: list, models: dict, ensemble: dict = None,
+    def __init__(self, root_dir: str,
+                 labels: list,
+                 models: dict,
+                 ensemble: dict = None,
                  max_subensemble_models: int = 1,
                  mode: str = "auto",
                  device: str = "cpu"):
@@ -109,9 +117,7 @@ class Ensemble:
         self.device = device
 
         self.root_dir = root_dir
-
         self.labels = labels
-
         self.models = models
         self.ensemble = ensemble
 
@@ -189,8 +195,8 @@ class Ensemble:
                 ans = m.test(test_df, data_dir)
                 answers.extend([ans])
 
-            answer1 = combine_answers_by_probabilities([a for a in answers])
-            answer2 = combine_answers([rank_preds(a).reset_index(drop=True) for a in answers])
+            answer1 = combine_answers_to_probabilities([a for a in answers])
+            answer2 = combine_answers_to_rankings([rank_preds(a).reset_index(drop=True) for a in answers])
             subensemble_labels = self.ensemble[subensemble]["labels"]
             answer_probabilities[subensemble_labels] = answer1[subensemble_labels]
             answer_ranking[subensemble_labels] = answer2[subensemble_labels]
