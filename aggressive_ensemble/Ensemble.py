@@ -118,14 +118,22 @@ class Ensemble:
 
         self.root_dir = root_dir
         self.labels = labels
-        self.models = models
+        self.models = {m: Classifier(self.labels, models[m], self.device) for m in models}
         self.ensemble = ensemble
 
         if not os.path.exists(root_dir + "ensemble_models/"):
             os.mkdir(root_dir + "ensemble_models/")
 
     def __str__(self):
-        return str(self.ensemble)
+        x = "Ensemble:\n"
+        for sub in self.ensemble:
+            x = x + "  " + sub + "\n\t\tlabels: \n"
+            for l in self.ensemble[sub]["labels"]:
+                x = x + "\t\t\t" + l + "\n"
+            x = x + "\t\tmodels: \n"
+            for m in self.ensemble[sub]["models"]:
+                x = x + "\t\t\t" + m + "\n"
+        return x
 
     def train(self, train_df: pd.DataFrame, data_dir: str, score_function):
         """
@@ -150,16 +158,16 @@ class Ensemble:
         print("Training...")
         for model in self.models:
             # zaladowanie modelu
-            m = Classifier(self.labels, self.models[model], self.device)
+            #m = Classifier(self.labels, self.models[model], self.device)
 
             # trening modelu
             print("Training model: " + model)
-            (_, stats) = m.train(train_df, data_dir, score_function)
+            (_, stats) = self.models[model].train(train_df, data_dir, score_function)
 
-            self.models[model]["path"] = self.root_dir + "ensemble_models/" + model + ".pth"  # zmiana sciezki modelu
+            #self.models_config[model.id]["path"] = self.root_dir + "ensemble_models/" + model.id + ".pth"  # zmiana sciezki modelu
 
             # zapisanie modelu
-            torch.save(m.model, self.root_dir + "ensemble_models/" + model + ".pth")
+            torch.save(self.models[model].model, self.root_dir + "ensemble_models/" + model + ".pth")
             print("Trained model saved: " + self.root_dir + "ensemble_models/" + model + ".pth")
 
             # zapisanie statystyk modelu
@@ -191,8 +199,8 @@ class Ensemble:
             print("Testing subensemble: " + subensemble)
             for model in self.ensemble[subensemble]["models"]:
                 # zaladowanie modelu
-                m = Classifier(self.labels, self.models[model], self.device)
-                ans = m.test(test_df, data_dir)
+                #m = Classifier(self.labels, self.models[model], self.device)
+                ans = self.models[model].test(test_df, data_dir)
                 answers.extend([ans])
 
             answer1 = combine_answers_to_probabilities([a for a in answers])
