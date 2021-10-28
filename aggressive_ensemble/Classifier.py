@@ -11,8 +11,8 @@ from torch import optim
 from torch.utils.data import DataLoader, Subset
 from torchvision import transforms
 
-from Dataset.ImageDataset import ImageDataset
-from Transforms.Transforms import *
+from .Dataset.ImageDataset import ImageDataset
+from .Transforms.Transforms import *
 
 
 class Classifier:
@@ -59,7 +59,7 @@ class Classifier:
         self.labels = labels
 
         if not os.path.exists(self.model_config['path']):
-            raise ValueError("Provided model path doesn't exist")
+            raise ValueError("Provided model path {} doesn't exist".format(self.model_config["path"]))
         self.model = torch.load(self.model_config['path'], map_location=torch.device(self.device))
 
         self.criterion = model_config["criterion"]

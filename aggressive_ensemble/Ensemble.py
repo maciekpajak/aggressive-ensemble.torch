@@ -16,7 +16,7 @@ def rank_preds(preds: pd.DataFrame) -> pd.DataFrame:
     :rtype: pd.DataFrame
     """
     if preds.empty:
-        ValueError("Answers list cannot be empty")
+        raise ValueError("Answers list cannot be empty")
 
     rpreds = pd.DataFrame(preds)
     for col in preds.columns.values:
@@ -34,7 +34,7 @@ def combine_answers_to_rankings(answers: List[pd.DataFrame]) -> pd.DataFrame:
     """
     # answers = list(answer.values())
     if answers == []:
-        ValueError("Answers list cannot be empty")
+        raise ValueError("Answers list cannot be empty")
 
     tags = answers[0].iloc[:, 0].values
     tmp = answers[0].copy(deep=False).set_index(tags)
@@ -63,7 +63,7 @@ def combine_answers_to_probabilities(answers: List[pd.DataFrame]) -> pd.DataFram
     :rtype:
     """
     if answers == []:
-        ValueError("Answers list cannot be empty")
+        raise ValueError("Answers list cannot be empty")
 
     mean = answers[0] - answers[0]
     for ans in answers:
@@ -119,20 +119,25 @@ class Ensemble:
         self.root_dir = root_dir
         self.labels = labels
         self.models = {m: Classifier(self.labels, models[m], self.device) for m in models}
-        self.ensemble = ensemble
+        self.models_stats = {m: None for m in models}
+        self.ensemble_stats = pd.DataFrame(columns=self.labels)
+        self.ensemble = {} if ensemble is None else ensemble
 
         if not os.path.exists(root_dir + "ensemble_models/"):
             os.mkdir(root_dir + "ensemble_models/")
 
     def __str__(self):
         x = "Ensemble:\n"
-        for sub in self.ensemble:
-            x = x + "  " + sub + "\n\t\tlabels: \n"
-            for l in self.ensemble[sub]["labels"]:
-                x = x + "\t\t\t" + l + "\n"
-            x = x + "\t\tmodels: \n"
-            for m in self.ensemble[sub]["models"]:
-                x = x + "\t\t\t" + m + "\n"
+        if self.ensemble is None:
+            x = x + "empty"
+        else:
+            for sub in self.ensemble:
+                x = x + "  " + sub + "\n\t\tlabels: \n"
+                for l in self.ensemble[sub]["labels"]:
+                    x = x + "\t\t\t" + l + "\n"
+                x = x + "\t\tmodels: \n"
+                for m in self.ensemble[sub]["models"]:
+                    x = x + "\t\t\t" + m + "\n"
         return x
 
     def train(self, train_df: pd.DataFrame, data_dir: str, score_function):
@@ -158,13 +163,13 @@ class Ensemble:
         print("Training...")
         for model in self.models:
             # zaladowanie modelu
-            #m = Classifier(self.labels, self.models[model], self.device)
+            # m = Classifier(self.labels, self.models[model], self.device)
 
             # trening modelu
             print("Training model: " + model)
             (_, stats) = self.models[model].train(train_df, data_dir, score_function)
-
-            #self.models_config[model.id]["path"] = self.root_dir + "ensemble_models/" + model.id + ".pth"  # zmiana sciezki modelu
+            self.models_stats[model] = stats
+            # self.models_config[model.id]["path"] = self.root_dir + "ensemble_models/" + model.id + ".pth"  # zmiana sciezki modelu
 
             # zapisanie modelu
             torch.save(self.models[model].model, self.root_dir + "ensemble_models/" + model + ".pth")
@@ -199,7 +204,9 @@ class Ensemble:
             print("Testing subensemble: " + subensemble)
             for model in self.ensemble[subensemble]["models"]:
                 # zaladowanie modelu
-                #m = Classifier(self.labels, self.models[model], self.device)
+                # m = Classifier(self.labels, self.models[model], self.device)
+                if model not in self.models.keys():
+                    raise ValueError("There is no {} in models".format(model))
                 ans = self.models[model].test(test_df, data_dir)
                 answers.extend([ans])
 
@@ -216,12 +223,31 @@ class Ensemble:
 
         return answer_probabilities, answer_01, answer_ranking
 
-    def autobuild_ensemble(self):
+    def build_ensemble(self):
         """
         Automatycznie buduje komitet na podstawie statystyk wytrenowanych modeli
         Domyślnie przypisuje wszysktie modele do wszystkich cech
         :return:
         :rtype:
         """
+        for stat in self.models_stats:
+            last = self.models_stats[stat]["val"].xs(self.models_stats[stat]["val"].shape[0] - 1)
+            last.name = stat
+            self.ensemble_stats = self.ensemble_stats.append(last)
+        i = 1
+        for label in self.labels:
+            tmp = self.ensemble_stats.sort_values(by=label, ascending=False)
+            m = []
+            for j in range(0, self.max_subensemble_models, 1):
+                m = m + [tmp.index[j]]
+            merged = False
+            for sub in self.ensemble:
+                if self.ensemble[sub]["models"] == m:
+                    self.ensemble[sub]["labels"] = self.ensemble[sub]["labels"] + [label]
+                    merged = True
+            if not merged:
+                self.ensemble["subensemble" + str(i)] = {"labels": [label], "models": m}
+                i += 1
 
-        pass
+        print("Ensemble built")
+        print(self)
