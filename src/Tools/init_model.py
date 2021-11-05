@@ -1,5 +1,5 @@
-from .models import *
-from .models import __all__
+from src.models import *
+from src.models import __all__
 
 
 def init_model(model_name, num_classes, feature_extract, use_pretrained=True):

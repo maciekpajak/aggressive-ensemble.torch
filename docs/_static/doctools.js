@@ -162,7 +162,7 @@ var Documentation = {
   LOCALE : 'unknown',
 
   // gettext and ngettext don't access this so that the functions
-  // can safely bound to a different name (_ = Documentation.gettext)
+  // can safely bound to a different name (_ = docs.gettext)
   gettext : function(string) {
     var translated = Documentation.TRANSLATIONS[string];
     if (typeof translated === 'undefined')
@@ -229,7 +229,7 @@ var Documentation = {
           body.highlightText(this.toLowerCase(), 'highlighted');
         });
       }, 10);
-      $('<p class="highlight-link"><a href="javascript:Documentation.' +
+      $('<p class="highlight-link"><a href="javascript:docs.' +
         'hideSearchWords()">' + _('Hide Search Matches') + '</a></p>')
           .appendTo($('#searchbox'));
     }

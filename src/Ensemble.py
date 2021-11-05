@@ -2,79 +2,10 @@ import torch
 import pandas as pd
 import warnings
 import os
-from typing import List
 
-from aggressive_ensemble.Classifier import Classifier
-
-
-def rank_preds(preds: pd.DataFrame) -> pd.DataFrame:
-    """
-
-    :param preds: Przewidywane wartości
-    :type preds: pd.DataFrame
-    :return: Uszeregowane przewiywane wratości od najbardziej prawdopodobnych do najmniej
-    :rtype: pd.DataFrame
-    """
-    if preds.empty:
-        raise ValueError("Answers list cannot be empty")
-
-    rpreds = pd.DataFrame(preds)
-    for col in preds.columns.values:
-        rpreds.loc[:, col] = preds.sort_values(by=col, ascending=False).index
-    return rpreds
-
-
-def combine_answers_to_rankings(answers: List[pd.DataFrame]) -> pd.DataFrame:
-    """
-
-    :param answers:
-    :type answers:
-    :return:
-    :rtype:
-    """
-    # answers = list(answer.values())
-    if answers == []:
-        raise ValueError("Answers list cannot be empty")
-
-    tags = answers[0].iloc[:, 0].values
-    columns = answers[0].columns.values
-
-    dic = {col: pd.DataFrame(columns=tags, index=range(0, len(answers))) for col in columns}
-
-    for ans, ans_idx in zip(answers, range(0, len(answers))):
-        for col in ans:
-            rank = 1
-            for val in ans[col]:
-                dic[col][val][ans_idx] = rank
-                rank += 1
-
-    answer = pd.DataFrame(columns=columns, index=tags)
-    for d in dic:
-        answer[d] = dic[d].mean()
-    for col in columns:
-        answer[col] = answer.sort_values(by=col, ascending=True).index
-    answer = answer.reset_index(drop=True)
-
-    return answer
-
-
-def combine_answers_to_probabilities(answers: List[pd.DataFrame]) -> pd.DataFrame:
-    """
-
-    :param answers:
-    :type answers:
-    :return:
-    :rtype:
-    """
-    if answers == []:
-        raise ValueError("Answers list cannot be empty")
-
-    mean = answers[0] - answers[0]
-    for ans in answers:
-        mean = mean + ans
-    mean = mean / len(answers)
-
-    return mean
+from src.Classifier import Classifier
+from src.tools.rank_preds import rank_preds
+from src.tools.merge_answers import merge_answers_by_rankings, merge_answers_by_probabilities
 
 
 class Ensemble:
@@ -103,23 +34,23 @@ class Ensemble:
             raise ValueError("Labels list cannot be empty")
 
         if not models:
-            raise ValueError("Models cannot be empty")
+            raise ValueError("Tools cannot be empty")
 
-        if not models and mode == "manual":
-            warnings.warn("Mode is manual and ensemble is not provided. Test function is not available in that case.")
+        if mode == "manual":
+            warnings.warn("Mode is manual and ensemble is not provided. Test function is not available.")
 
         if mode not in ["manual", "auto"]:
             raise ValueError("Mode should be either manual or auto")
-        self.mode = mode
 
         if not isinstance(max_subensemble_models, int) or max_subensemble_models < 1:
             raise ValueError("Argument max_subensemble_models should be int and be greater than 1")
-        self.max_subensemble_models = max_subensemble_models
 
         if device not in ["cpu", "gpu"]:
             raise ValueError("Device should be either cpu or gpu")
-        self.device = device
 
+        self.mode = mode
+        self.max_subensemble_models = max_subensemble_models
+        self.device = device
         self.root_dir = root_dir
         self.labels = labels
         self.models = {m: Classifier(self.labels, models[m], self.device) for m in models}
@@ -176,8 +107,12 @@ class Ensemble:
             # self.models_config[model.id]["path"] = self.root_dir + "ensemble_models/" + model.id + ".pth"  # zmiana sciezki modelu
 
             # zapisanie modelu
-            torch.save(self.models[model].model, self.root_dir + "ensemble_models/" + model + ".pth")
-            print("Trained model saved: " + self.root_dir + "ensemble_models/" + model + ".pth")
+            if(self.models[model].save_to != ""):
+                self.models[model].save(self.models[model].save_to)
+                print("Trained model saved: " + self.models[model].save_to)
+            else:
+                torch.save(self.models[model].model, self.root_dir + "ensemble_models/" + model + ".pth")
+                print("Trained model saved: " + self.root_dir + "ensemble_models/" + model + ".pth")
 
             # zapisanie statystyk modelu
             stats["train"].to_csv(path_or_buf=train_stats_path + model + "train_stats.csv", index=False,
@@ -214,8 +149,8 @@ class Ensemble:
                 ans = self.models[model].test(test_df, data_dir)
                 answers.extend([ans])
 
-            answer1 = combine_answers_to_probabilities([a for a in answers])
-            answer2 = combine_answers_to_rankings([rank_preds(a).reset_index(drop=True) for a in answers])
+            answer1 = merge_answers_by_probabilities([a for a in answers])
+            answer2 = merge_answers_by_rankings([rank_preds(a).reset_index(drop=True) for a in answers])
             subensemble_labels = self.ensemble[subensemble]["labels"]
             answer_probabilities[subensemble_labels] = answer1[subensemble_labels]
             answer_ranking[subensemble_labels] = answer2[subensemble_labels]

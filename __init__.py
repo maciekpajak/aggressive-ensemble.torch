@@ -1,2 +1,2 @@
-from .aggressive_ensemble.version import __version__
-from  .aggressive_ensemble import Ensemble
+from .src.version import __version__
+from  .src import Ensemble

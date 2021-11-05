@@ -5,7 +5,7 @@ from codecs import open
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-exec(open('aggressive_ensemble/version.py').read())
+exec(open('src/version.py').read())
 setuptools.setup(
     name="aggressive-ensemble.pytorch",
     version=__version__,

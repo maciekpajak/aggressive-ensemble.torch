@@ -11,8 +11,8 @@ from torch import optim
 from torch.utils.data import DataLoader, Subset
 from torchvision import transforms
 
-from .Dataset.ImageDataset import ImageDataset
-from .Transforms.Transforms import *
+from src.ImageDataset import ImageDataset
+from src.transforms import Rescale, ToTensor, Normalize
 
 
 class Classifier:
@@ -55,6 +55,8 @@ class Classifier:
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self.model_config = model_config
+        self.save_to = model_config["save_to"]
+        self.id = model_config["name"]
 
         self.labels = labels
 
@@ -114,10 +116,22 @@ class Classifier:
         :return:
         :rtype:
         """
-        if not os.path.exists(path):
-            raise ValueError("Path doesn't exist")
-
         torch.save(self.model, path)
+
+    def __autosave(self):
+        """
+
+        :param path: Ścieżka do zapisania modelu
+        :type path: string
+        :return:
+        :rtype:
+        """
+        if self.save_to == "":
+            warnings.warn("Dont know where to autosave")
+            return
+        print("Model autosaved")
+        torch.save(self.model, self.save_to)
+
 
     def train(self, train_df: pd.DataFrame, data_dir: str, score_function):
         """
@@ -137,11 +151,11 @@ class Classifier:
 
         ratio = 0.8
 
-        train_tranform = transforms.Compose(self.preprocessing + self.augmentation + self.adapt)
-        train_dataset = ImageDataset(train_df, data_dir, self.labels, train_tranform)
+        train_transform = transforms.Compose(self.preprocessing + self.augmentation + self.adapt)
+        train_dataset = ImageDataset(train_df, data_dir, self.labels, train_transform)
 
-        val_tranform = transforms.Compose(self.preprocessing + self.adapt)
-        val_dataset = ImageDataset(train_df, data_dir, self.labels, val_tranform)
+        val_transform = transforms.Compose(self.preprocessing + self.adapt)
+        val_dataset = ImageDataset(train_df, data_dir, self.labels, val_transform)
 
         l = int(len(train_dataset) * ratio)
         train_dataset = Subset(train_dataset, range(0, l))
@@ -154,6 +168,7 @@ class Classifier:
 
         max_epochs = self.model_config['max_epochs']
         val_every = self.model_config['val_every']
+        autosave_every = self.model_config['autosave_every']
 
         headers = ['epoch', 'loss', 'score']
         headers.extend(self.labels)
@@ -227,8 +242,11 @@ class Classifier:
                 if phase == 'train':
                     epoch_score_history[epoch % 3] = score
 
+            if (epoch + 1) % autosave_every == 0:
+                self.__autosave()
             if epoch_score_history[0] == epoch_score_history[1] and epoch_score_history[1] == epoch_score_history[2]:
                 break
+
         time_elapsed = time.time() - since
         print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
 
