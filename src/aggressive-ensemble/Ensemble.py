@@ -3,9 +3,9 @@ import pandas as pd
 import warnings
 import os
 
-from src.Classifier import Classifier
-from src.tools.rank_preds import rank_preds
-from src.tools.merge_answers import merge_answers_by_rankings, merge_answers_by_probabilities
+from .Classifier import Classifier
+from .tools.rank_preds import rank_preds
+from .tools.merge_answers import merge_answers_by_rankings, merge_answers_by_probabilities
 
 
 class Ensemble:
@@ -34,7 +34,7 @@ class Ensemble:
             raise ValueError("Labels list cannot be empty")
 
         if not models:
-            raise ValueError("Tools cannot be empty")
+            raise ValueError("tools cannot be empty")
 
         if mode == "manual":
             warnings.warn("Mode is manual and ensemble is not provided. Test function is not available.")

@@ -1,9 +1,9 @@
-from src.Ensemble import Ensemble
+from src import Ensemble
 import pandas as pd
 import numpy as np
 from sklearn.metrics import average_precision_score
 from torch import nn
-import src.transforms as tfms
+import src as tfms
 
 ensemble_structure = {
     "subensemble1": {

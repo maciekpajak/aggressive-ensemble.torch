@@ -11,8 +11,8 @@ from torch import optim
 from torch.utils.data import DataLoader, Subset
 from torchvision import transforms
 
-from src.ImageDataset import ImageDataset
-from src.transforms import Rescale, ToTensor, Normalize
+from .ImageDataset import ImageDataset
+from .transforms import Rescale, ToTensor, Normalize
 
 
 class Classifier:
