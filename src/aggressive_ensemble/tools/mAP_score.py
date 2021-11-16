@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 
 
-def score(preds: pd.DataFrame, trues: pd.DataFrame):
+def mAP_score(preds: pd.DataFrame, trues: pd.DataFrame):
     """ Funkcja obliczająca wynik modelu sieci neuronowej
 
         :param preds: Wartości przewidywane przez model

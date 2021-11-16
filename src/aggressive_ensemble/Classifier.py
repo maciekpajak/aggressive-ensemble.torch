@@ -55,7 +55,11 @@ class Classifier:
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self.model_config = model_config
+
+        if not os.path.isdir(model_config["save_to"]):
+            raise ValueError("Saving directory {} is not a directory or doesn't exist".format(model_config["save_to"]))
         self.save_to = model_config["save_to"]
+
         self.id = model_config["name"]
 
         self.labels = labels
@@ -94,18 +98,17 @@ class Classifier:
         :return: Parameters to update
         :rtype: list
         """
-        params_to_update = self.model.parameters()
+        params_to_update = []
         if self.model_config["feature_extract"]:
-            params_to_update = []
             for name, param in self.model.named_parameters():
                 if param.requires_grad:
                     params_to_update.append(param)
-                    # print("\t", name)
+                    print("\t", name)
         else:
             for name, param in self.model.named_parameters():
                 if param.requires_grad:
                     pass
-                    # print("\t", name)
+                    print("\t", name)
         return params_to_update
 
     def save(self, path):
@@ -117,21 +120,6 @@ class Classifier:
         :rtype:
         """
         torch.save(self.model, path)
-
-    def __autosave(self):
-        """
-
-        :param path: Ścieżka do zapisania modelu
-        :type path: string
-        :return:
-        :rtype:
-        """
-        if self.save_to == "":
-            warnings.warn("Dont know where to autosave")
-            return
-        print("Model autosaved")
-        torch.save(self.model, self.save_to)
-
 
     def train(self, train_df: pd.DataFrame, data_dir: str, score_function):
         """
@@ -152,6 +140,7 @@ class Classifier:
         ratio = 0.8
 
         train_transform = transforms.Compose(self.preprocessing + self.augmentation + self.adapt)
+        print(train_transform)
         train_dataset = ImageDataset(train_df, data_dir, self.labels, train_transform)
 
         val_transform = transforms.Compose(self.preprocessing + self.adapt)
@@ -168,16 +157,17 @@ class Classifier:
 
         max_epochs = self.model_config['max_epochs']
         val_every = self.model_config['val_every']
+
         autosave_every = self.model_config['autosave_every']
+        autosave = True if autosave_every > 0 else False
 
         headers = ['epoch', 'loss', 'score']
         headers.extend(self.labels)
         stats = {'train': pd.DataFrame(columns=headers),
                  'val': pd.DataFrame(columns=headers)}
-        # stats_dir = stats_dir
-        # os.mkdir(stats_dir)
-        # stats_path = {'train': stats_dir + self.model_id + '_train_stats.csv',
-        #              'val': stats_dir + self.model_id + '_val_stats.csv'}
+
+        stats_path = {'train': self.save_to + self.id + '_train_stats.csv',
+                      'val': self.save_to + self.id + '_val_stats.csv'}
 
         epoch_score_history = [0, 0, 0]
         for epoch in range(max_epochs):
@@ -237,13 +227,14 @@ class Classifier:
                 epoch_stats = [epoch + 1, epoch_loss, score]
                 epoch_stats.extend(labels_score)
                 stats[phase] = stats[phase].append(pd.DataFrame([epoch_stats], columns=headers), ignore_index=True)
-                # stats[phase].to_csv(path_or_buf=stats_path[phase], index=False)
+                stats[phase].to_csv(path_or_buf=stats_path[phase], index=False)
 
                 if phase == 'train':
                     epoch_score_history[epoch % 3] = score
 
-            if (epoch + 1) % autosave_every == 0:
-                self.__autosave()
+            if autosave and (epoch + 1) % autosave_every == 0:
+                print("Autosave")
+                torch.save(self.model, self.save_to + self.id + +"_epoch" + str(epoch + 1) + ".pth")
             if epoch_score_history[0] == epoch_score_history[1] and epoch_score_history[1] == epoch_score_history[2]:
                 break
 
@@ -282,19 +273,20 @@ class Classifier:
         answer.index.name = 'tag_id'
         return answer
 
-    def show_random_images(self, num: int) -> None:
+    def show_random_images(self, num: int, train_df: pd.DataFrame, data_dir: str) -> None:
         """
 
         :param num: Liczba obrazów do wyświetlenia
         :type num: int
         """
-
-        indices = list(range(len(self.dataset['train'])))
+        transform = transforms.Compose(self.preprocessing + self.augmentation + self.adapt)
+        dataset = ImageDataset(train_df, data_dir, self.labels, transform)
+        indices = list(range(len(dataset)))
         np.random.shuffle(indices)
         idx = indices[:num]
         from torch.utils.data.sampler import SubsetRandomSampler
         sampler = SubsetRandomSampler(idx)
-        loader = DataLoader(self.dataset['train'], sampler=sampler, batch_size=num)
+        loader = DataLoader(dataset, sampler=sampler, batch_size=num)
         dataiter = iter(loader)
         tag_id, images, labels = dataiter.next()
         to_pil = transforms.ToPILImage()

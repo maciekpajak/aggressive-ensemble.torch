@@ -1,9 +1,10 @@
-from src import Ensemble
+from src.aggressive_ensemble.Ensemble import Ensemble, Classifier
+from src.aggressive_ensemble.tools.mAP_score import mAP_score
+from src.aggressive_ensemble.transforms import *
 import pandas as pd
 import numpy as np
 from sklearn.metrics import average_precision_score
 from torch import nn
-import src as tfms
 
 ensemble_structure = {
     "subensemble1": {
@@ -27,40 +28,37 @@ ensemble_structure = {
 
 models_configs = {
     "resnet50": {
-        "name": "resnet50-pretrained",
+        "name": "resnet50-test3",
         "path": "H:/Studia/Praca inżynierska/basic_models/resnet50_pretrained.pth",
-        "save_to": "H:/Studia/Praca inżynierska/basic_models/resnet50_test1.pth",
+        "save_to": "H:/Studia/Praca inżynierska/basic_models/",
         "max_epochs": 3,
         "criterion": nn.BCELoss(),
         "batch_size": 4,
         "num_workers": 1,
-        "preprocessing": [tfms.ExtractPolygon(),
-                          tfms.RotateToHorizontal(),
-                          tfms.ChangeColorspace("RGB", "HSV")],
-        "augmentation": [tfms.RandomHorizontalFlip(), tfms.RandomVerticalFlip()],
+        "preprocessing": [ExtractPolygon(),ChangeColorspace("RGB", "HSV")],
+        "augmentation": [],
         "normalization": {
-            "mean": [0.485, 0.456, 0.406],
-            "std": [0.229, 0.224, 0.225]
+            "mean": [0, 0, 0],
+            "std": [1, 1, 1]
         },
-        "input_size": 224,
+        "input_size": 500,
         "lr": 0.01,
         "momentum": 0.9,
         "val_every": 1,
         "autosave_every": 1,
-        "feature_extract": False,
+        "feature_extract": True,
     },
     "resnet152_1": {
-        "name": "resnet152_pretrained",
+        "name": "resnet152_test3",
         "path": "H:/Studia/Praca inżynierska/basic_models/resnet152_pretrained.pth",
-        "save_to": "H:/Studia/Praca inżynierska/basic_models/resnet50_test2.pth",
+        "save_to": "H:/Studia/Praca inżynierska/basic_models/",
         "max_epochs": 1,
         "criterion": nn.BCELoss(),
         "batch_size": 4,
         "num_workers": 1,
-        "preprocessing": [tfms.ExtractPolygon(),
-                          tfms.RotateToHorizontal(),
-                          tfms.ChangeColorspace("RGB", "HSV")],
-        "augmentation": [tfms.RandomHorizontalFlip(), tfms.RandomVerticalFlip()],
+        "preprocessing": [ExtractPolygon(),
+                          ChangeColorspace("RGB", "HSV")],
+        "augmentation": [RandomHorizontalFlip(), RandomVerticalFlip()],
         "normalization": {
             "mean": [0.485, 0.456, 0.406],
             "std": [0.229, 0.224, 0.225]
@@ -70,35 +68,9 @@ models_configs = {
         "momentum": 0.9,
         "val_every": 1,
         "autosave_every": 1,
-        "feature_extract": False,
+        "feature_extract": True,
     }
 }
-
-
-def score(preds: pd.DataFrame, trues: pd.DataFrame):
-    """ Funkcja obliczająca wynik modelu sieci neuronowej
-
-        :param preds: Wartości przewidywane przez model
-        :type preds: pd.DataFrame
-        :param trues: Wartości prawdziwe
-        :type trues: pd.DataFrame
-        :return: Ogólny wynik modelu oraz wyniki dla każdej z cech w postaci listy
-        :rtype: float, list
-        """
-    labels_score = []
-
-    score = 0.0
-    for p, t in zip(preds, trues):
-        ap = 0.0
-        if np.sum(trues[t]) != 0:
-            ap = average_precision_score(trues[t], preds[p])
-        labels_score.append(ap)
-        score += ap
-
-    score /= preds.shape[1]
-
-    return score, labels_score
-
 
 if __name__ == '__main__':
     device = "cpu"
@@ -110,15 +82,14 @@ if __name__ == '__main__':
     test_df = pd.DataFrame(pd.read_csv(test_csv))
     labels = list(pd.read_csv(labels_csv))
     print(labels)
-    # for model in models_configs:
-    #    print(models_configs[model])
-    # models = {model: Classifier(labels, models_configs[model], device) for model in models_configs}
+
     ensemble = Ensemble(root_dir="H:/Studia/Praca inżynierska/",
                         labels=labels, models=models_configs, ensemble=None, max_subensemble_models=2,
                         mode="manual", device="cpu")
     print(ensemble)
 
-    ensemble.train(train_df=train_df, data_dir=data_dir, score_function=score)
-    ensemble.build_ensemble()
+    ensemble.train(train_df=train_df, data_dir=data_dir, score_function=mAP_score)
+
+    #ensemble.build_ensemble()
     answer_probabilities, answer_01, answer_ranking = ensemble.test(test_df=test_df, data_dir=data_dir)
     answer_ranking.to_csv(path_or_buf="H:/Studia/Praca inżynierska/answer.csv", index=False, header=True)
