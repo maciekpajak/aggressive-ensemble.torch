@@ -98,6 +98,7 @@ class Classifier:
         :return: Parameters to update
         :rtype: list
         """
+        print("Parameters to update:")
         params_to_update = []
         if self.model_config["feature_extract"]:
             for name, param in self.model.named_parameters():
@@ -188,8 +189,8 @@ class Classifier:
 
                 preds = pd.DataFrame(columns=self.labels)
                 trues = pd.DataFrame(columns=self.labels)
-                for i, (tag_id, inputs, labels) in enumerate(dataloader[phase], 0):
 
+                for i, (tag_id, inputs, labels) in enumerate(dataloader[phase], 0):
                     inputs, labels = inputs.to(self.device), labels.to(self.device)
 
                     # zero the parameter gradients
@@ -209,7 +210,6 @@ class Classifier:
                         if phase == 'train':
                             loss.backward()
                             self.optimizer.step()
-
                     preds = preds.append(pd.DataFrame(outputs.tolist(), columns=self.labels))
                     trues = trues.append(pd.DataFrame(labels.tolist(), columns=self.labels))
 
@@ -220,7 +220,7 @@ class Classifier:
                     bar.update(i, values=[("loss", loss.item()), ('score', score)])
 
                 score, labels_score = score_function(preds, trues)
-                epoch_loss = running_loss * inputs.size(0) / len(dataloader[phase].dataset)
+                epoch_loss = running_loss / len(dataloader[phase])
 
                 bar.add(1, values=[("epoch_loss", epoch_loss), ('epoch_score', score)])
 
@@ -234,12 +234,13 @@ class Classifier:
 
             if autosave and (epoch + 1) % autosave_every == 0:
                 print("Autosave")
-                torch.save(self.model, self.save_to + self.id + +"_epoch" + str(epoch + 1) + ".pth")
+                torch.save(self.model, self.save_to + self.id + ".pth")
             if epoch_score_history[0] == epoch_score_history[1] and epoch_score_history[1] == epoch_score_history[2]:
                 break
 
-        time_elapsed = time.time() - since
-        print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
+
+            time_elapsed = time.time() - since
+            print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
 
         return self.model, stats
 

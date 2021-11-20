@@ -3,7 +3,6 @@ from torch.utils.data import Dataset
 import pandas as pd
 import numpy as np
 from PIL import Image
-from pathlib import Path
 import os
 
 from typing import List
@@ -95,7 +94,16 @@ class ImageDataset(Dataset):
         polygon = np.array([polygon])
         polygon = polygon.astype('int').reshape(-1, 2)
 
-        path = list(Path(self.data_dir).glob(str(img_id) + '.*'))[0]
+        # glob.glob(self.data_dir + str(img_id) + '.*')[0]
+        # list(Path(self.data_dir).glob(str(img_id) + '.*'))[0]
+        # paths = glob.glob(self.data_dir + str(img_id) + '.jpg')
+        # if not paths:
+        #    raise FileNotFoundError("There is no file {}".format(self.data_dir + str(img_id) + '.jpg'))
+
+        path = self.data_dir + str(img_id) + '.bmp'
+        if not os.path.exists(path):
+            raise FileNotFoundError("There is no file {}".format(self.data_dir + str(img_id) + '.bmp'))
+
         image = np.asarray(Image.open(path).convert('RGB'))
         sample = {'image': image, 'polygon': polygon, 'labels': labels}
 

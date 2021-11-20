@@ -37,7 +37,7 @@ class Ensemble:
             raise ValueError("tools cannot be empty")
 
         if mode == "manual":
-            warnings.warn("Mode is manual and ensemble is not provided. Test function is not available.")
+            warnings.warn("Manual mode")
 
         if mode not in ["manual", "auto"]:
             raise ValueError("Mode should be either manual or auto")
@@ -108,8 +108,8 @@ class Ensemble:
 
             # zapisanie modelu
             if(self.models[model].save_to != ""):
-                self.models[model].save(self.models[model].save_to)
-                print("Trained model saved: " + self.models[model].save_to)
+                self.models[model].save(self.models[model].save_to + model + ".pth")
+                print("Trained model saved: " + self.models[model].save_to + model + ".pth")
             else:
                 torch.save(self.models[model].model, self.root_dir + "ensemble_models/" + model + ".pth")
                 print("Trained model saved: " + self.root_dir + "ensemble_models/" + model + ".pth")
@@ -137,16 +137,27 @@ class Ensemble:
         answer_probabilities = pd.DataFrame(columns=self.labels)
         answer_ranking = pd.DataFrame(columns=self.labels)
 
+        answers_dir = {}
         print('Testing...')
         for subensemble in self.ensemble:
-            answers = []
-            print("Testing subensemble: " + subensemble)
             for model in self.ensemble[subensemble]["models"]:
+
+                print("Testing model: " + model)
                 # zaladowanie modelu
                 # m = Classifier(self.labels, self.models[model], self.device)
+                if model in answers_dir.keys():
+                    continue
                 if model not in self.models.keys():
                     raise ValueError("There is no {} in models".format(model))
                 ans = self.models[model].test(test_df, data_dir)
+                answers_dir[model] = ans
+
+        for subensemble in self.ensemble:
+            answers = []
+            print("Merging subensemble: " + subensemble + ":")
+            for model in self.ensemble[subensemble]["models"]:
+                print("\t" + model)
+                ans = answers_dir[model]
                 answers.extend([ans])
 
             answer1 = merge_answers_by_probabilities([a for a in answers])

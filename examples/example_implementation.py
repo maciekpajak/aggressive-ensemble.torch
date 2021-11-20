@@ -16,7 +16,7 @@ ensemble_structure = {
                    'sub_class_truck',
                    'sub_class_van', 'color_black', 'color_blue', 'color_green', 'color_other', 'color_red',
                    'color_silver/grey', 'color_white', 'color_yellow'],
-        "models": ["nasnetamobile"],
+        "models": ["resnet50", "resnet152_1"],
     },
     "subensemble2": {
         "labels": ['sunroof', 'luggage_carrier', 'open_cargo_area', 'enclosed_cab', 'spare_wheel',
@@ -75,7 +75,7 @@ models_configs = {
 if __name__ == '__main__':
     device = "cpu"
     labels_csv = 'H:/Studia/Praca inżynierska/labels.csv'
-    data_dir = 'H:/Studia/Praca inżynierska/data/train/'
+    data_dir = 'H:/Studia/Praca inżynierska/data/trainonlybmp/'
     train_csv = 'H:/Studia/Praca inżynierska/train_short.csv'
     test_csv = 'H:/Studia/Praca inżynierska/test_short.csv'
     train_df = pd.DataFrame(pd.read_csv(train_csv))
@@ -84,7 +84,7 @@ if __name__ == '__main__':
     print(labels)
 
     ensemble = Ensemble(root_dir="H:/Studia/Praca inżynierska/",
-                        labels=labels, models=models_configs, ensemble=None, max_subensemble_models=2,
+                        labels=labels, models=models_configs, ensemble=ensemble_structure, max_subensemble_models=2,
                         mode="manual", device="cpu")
     print(ensemble)
 
