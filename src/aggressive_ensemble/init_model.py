@@ -67,6 +67,14 @@ def init_model(model_name, num_classes, feature_extract, use_pretrained=True):
         model, input_size, mean, std = nasnetalarge(num_classes=num_classes,
                                                     feature_extract=feature_extract,
                                                     use_pretrained=use_pretrained)
+    elif model_name == "yolov5s":
+        model, input_size, mean, std = yolov5s(num_classes=num_classes,
+                                                    feature_extract=feature_extract,
+                                                    use_pretrained=use_pretrained)
+    elif model_name == "yolov5m":
+        model, input_size, mean, std = yolov5m(num_classes=num_classes,
+                                                    feature_extract=feature_extract,
+                                                    use_pretrained=use_pretrained)
     else:
         print("Classifier doesn't exist. Possible models: ")
         print(__all__)

@@ -75,7 +75,7 @@ class Ensemble:
                     x = x + "\t\t\t" + m + "\n"
         return x
 
-    def train(self, train_df: pd.DataFrame, data_dir: str, score_function):
+    def train(self, train_df: pd.DataFrame, val_df: pd.DataFrame, data_dir: str, score_function):
         """
 
         :return:
@@ -102,7 +102,7 @@ class Ensemble:
 
             # trening modelu
             print("Training model: " + model)
-            (_, stats) = self.models[model].train(train_df, data_dir, score_function)
+            (_, stats) = self.models[model].train(train_df, val_df, data_dir, score_function)
             self.models_stats[model] = stats
             # self.models_config[model.id]["path"] = self.root_dir + "ensemble_models/" + model.id + ".pth"  # zmiana sciezki modelu
 

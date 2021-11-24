@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="aggressive_ensemble",
-    version="0.2.5",
+    version="0.2.6",
     author="Maciej Pajak",
     author_email="mpajak98@gmail.com",
     description="A package implementing aggressive ensemble methods",

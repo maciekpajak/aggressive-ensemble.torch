@@ -111,7 +111,7 @@ class Crop(object):
         bottom = max(0, h - max(row[1] for row in polygon))
         right = max(0, w - max(row[0] for row in polygon))
 
-        t = iaa.Crop(px=(int(top), int(right), int(bottom), int(left)))
+        t = iaa.Crop(px=(int(top), int(right), int(bottom), int(left)), keep_size=False)
         img = t(image=image)
         for i in range(polygon.shape[0]):
             polygon[i][0] = polygon[i][0] - left
@@ -186,6 +186,8 @@ class ToTensor(object):
 
         t = transforms.ToTensor()
         img = t(image)
+        torch.FloatTensor(labels.values)
+        torch.from_numpy(polygon)
         return {'image': img, 'polygon': torch.from_numpy(polygon), 'labels': torch.FloatTensor(labels.values)}
 
     def __str__(self):

@@ -45,7 +45,7 @@ class ImageDataset(Dataset):
         if not callable(transform):
             raise ValueError("Transform should be a function")
 
-        self.df = pd.get_dummies(df)
+        self.df = df
         columns = self.df.columns.to_list()
         missing_cols = []
         for label in labels:
@@ -90,9 +90,11 @@ class ImageDataset(Dataset):
                 break
 
         labels = self.df.loc[idx, self.labels]
+        labels = labels.astype('int8')
         polygon = self.df.loc[idx, polygon_points]
+        polygon = polygon.astype('float32')
         polygon = np.array([polygon])
-        polygon = polygon.astype('int').reshape(-1, 2)
+        polygon = polygon.astype('int32').reshape(-1, 2)
 
         # glob.glob(self.data_dir + str(img_id) + '.*')[0]
         # list(Path(self.data_dir).glob(str(img_id) + '.*'))[0]
