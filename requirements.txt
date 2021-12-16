@@ -8,4 +8,5 @@ imgaug
 Pillow
 scikit-learn
 setuptools
-pkbar
+tqdm
+progress

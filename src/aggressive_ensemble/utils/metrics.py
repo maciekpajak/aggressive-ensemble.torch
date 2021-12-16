@@ -14,7 +14,7 @@ def mAP_score(preds: pd.DataFrame, trues: pd.DataFrame):
         :rtype: float, list
         """
     labels_score = []
-
+    trues = trues.replace(-1,0)
     score = 0.0
     for p, t in zip(preds, trues):
         ap = 0.0

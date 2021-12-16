@@ -1,3 +1,4 @@
+import time
 from typing import Union, Tuple
 
 import torch
@@ -7,9 +8,10 @@ import random
 from torchvision import transforms
 from imgaug.augmentables.polys import Polygon
 from imgaug import augmenters as iaa
+import imgaug
 
 __all__ = ['Rescale', 'RotateToHorizontal', 'EdgeDetection', 'ChangeColorspace', 'ExtractPolygon', 'Crop',
-           'Normalize', 'ToTensor', 'RandomVerticalFlip', 'RandomHorizontalFlip', 'RandomRotate', 'SwitchRGBChannels']
+           'Normalize', 'ToTensor']
 
 
 class RotateToHorizontal(object):
@@ -91,8 +93,8 @@ class ExtractPolygon(object):
     def __call__(self, sample):
         image, polygon, labels = sample['image'], sample['polygon'], sample['labels']
         p = Polygon(polygon)
-        t = iaa.Pad(px=5)
-        img = t(image=p.extract_from_image(image))
+        #t = iaa.Pad(px=0)
+        img = p.extract_from_image(image)
         return {'image': img, 'polygon': polygon, 'labels': labels}
 
     def __str__(self):
@@ -194,90 +196,3 @@ class ToTensor(object):
         return "Convert to tensor"
 
 
-class RandomHorizontalFlip(object):
-    """Transformacja losowo odbijająca obraz w pozycji horyzontalnej"""
-
-    def __call__(self, sample):
-        image, polygon, labels = sample['image'], sample['polygon'], sample['labels']
-
-        t = iaa.Fliplr(p=0.5)
-        img = t(image=image)
-
-        return {'image': img, 'polygon': polygon, 'labels': labels}
-
-    def __str__(self):
-        return "Random horizonatal flip"
-
-
-class RandomVerticalFlip(object):
-    """Transformacja losowo odbijająca obraz w pozycji wertykalnej """
-
-    def __call__(self, sample):
-        image, polygon, labels = sample['image'], sample['polygon'], sample['labels']
-
-        t = iaa.Flipud(p=0.5)
-        img = t(image=image)
-
-        return {'image': img, 'polygon': polygon, 'labels': labels}
-
-    def __str__(self):
-        return "Random vertical flip"
-
-
-class RandomRotate(object):
-    """Transformacja obracająca obiekt o losowy kąt"""
-
-    def __call__(self, sample):
-        image, polygon, labels = sample['image'], sample['polygon'], sample['labels']
-
-        t = iaa.Sequential([iaa.Affine(rotate=(0, 360))])
-        img = t(image=image)
-
-        return {'image': img, 'polygon': polygon, 'labels': labels}
-
-    def __str__(self):
-        return "Random rotation"
-
-
-class SwitchRGBChannels(object):
-    """Transformacja zamieniająca kanały RGB"""
-
-    def __call__(self, sample):
-        image, polygon, labels = sample['image'], sample['polygon'], sample['labels']
-
-        x = bool(random.getrandbits(1))
-        if labels["color_red"] == 1:
-            labels["color_red"] = 0.0
-            if x:
-                # switch red channel with blue channel
-                image[:, :, [0, 1, 2]] = image[:, :, [2, 1, 0]]
-                labels["color_blue"] = 1.0
-            else:
-                # switch red channel with green channel
-                image[:, :, [0, 1, 2]] = image[:, :, [1, 0, 2]]
-                labels["color_green"] = 1.0
-        elif labels["color_green"] == 1:
-            labels["color_green"] = 0.0
-            if x:
-                # switch green channel with blue channel
-                image[:, :, [0, 1, 2]] = image[:, :, [0, 2, 1]]
-                labels["color_blue"] = 1.0
-            else:
-                # switch green channel with red channel
-                image[:, :, [0, 1, 2]] = image[:, :, [1, 0, 2]]
-                labels["color_green"] = 1.0
-        elif labels["color_blue"] == 1:
-            labels["color_blue"] = 0.0
-            if x:
-                # switch red channel with blue channel
-                image[:, :, [0, 1, 2]] = image[:, :, [2, 1, 0]]
-                labels["color_red"] = 1.0
-            else:
-                # switch blue channel with green channel
-                image[:, :, [0, 1, 2]] = image[:, :, [0, 2, 1]]
-                labels["color_green"] = 1.0
-
-        return {'image': image, 'polygon': polygon, 'labels': labels}
-
-    def __str__(self):
-        return "Switch RGB channels"

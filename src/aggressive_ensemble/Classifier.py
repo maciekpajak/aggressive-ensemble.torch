@@ -1,72 +1,52 @@
 import os
 import time
 import warnings
+import click
 
-import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 import torch
 from torch import optim, nn
-from torch.utils.data import DataLoader, Subset
-from torchvision import transforms, models
 
-from .ImageDataset import ImageDataset
-from .transforms import Rescale, ToTensor, Normalize
 from tqdm import tqdm
 import shutil
 
+from .utils.general import create_dataloader
+
 NCOLS = shutil.get_terminal_size().columns
-
-
-def create_dataloader(data_dir,
-                      dataframe,
-                      labels,
-                      preprocessing=None,
-                      augmentation=None,
-                      input_size=224,
-                      mean=(0, 0, 0),
-                      std=(1, 1, 1),
-                      batch_size=32,
-                      shuffle=True,
-                      num_workers=1):
-    if preprocessing is None:
-        preprocessing = []
-    if augmentation is None:
-        augmentation = []
-
-    adapt = [Rescale(output_size=(input_size, input_size)),
-             ToTensor(),
-             Normalize(mean=mean, std=std)]
-    transform = transforms.Compose(preprocessing + augmentation + adapt)
-    dataset = ImageDataset(dataframe, data_dir, labels, transform)
-    dataloader = DataLoader(dataset=dataset,
-                            batch_size=batch_size,
-                            shuffle=shuffle,
-                            num_workers=num_workers)
-    return dataloader
 
 
 class Classifier:
     """ Klasa reprezentująca pojedynczy model sieci neuronowej.
     Oprócz samego modelu przechowuje wymagane atrybuty
 
-    :param labels: lista możliwych etykiet
-    :type labels: list
-    :param model_config: konfiguracja modelu
-    :type model_config: dict
-    :param cpu_or_gpu: gpu or cpu
-    :type cpu_or_gpu: string
-
     """
 
     def __init__(self,
                  name: str,
-                 path: str,
+                 model,
                  labels: list,
                  device: str,
-                 save_dir=None,
+                 preprocessing,
+                 augmentation,
+                 mean,
+                 std,
+                 batch_size,
+                 num_workers,
+                 epochs=50,
+                 start_epoch=0,
+                 input_size=224,
+                 lr=0.01,
+                 momentum=0.9,
+                 val_every=1,
+                 save_every=3,
+                 shuffle=False,
+                 criterion=nn.BCELoss(),
                  feature_extract=True,
-                 is_inception=False):
+                 is_inception=False,
+                 checkpoint_path=None
+                 ):
+
+        self.id = name
 
         if not labels:
             raise ValueError("Labels list cannot be empty")
@@ -80,28 +60,67 @@ class Classifier:
                 warnings.warn("CUDA is not available! Switched to CPU")
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        if not os.path.isdir(save_dir):
-            raise ValueError("Saving directory {} is not a directory or doesn't exist".format(save_dir))
-        self.save_dir = save_dir
+        # if not os.path.isdir(save_dir):
+        #    raise ValueError(f"Saving directory {save_dir} is not a directory or doesn't exist")
 
-        self.id = name
+        # self.save_dir = save_dir
+        # if not os.path.exists(self.save_dir):
+        #    os.makedirs(self.save_dir)
+        # if os.path.exists(self.save_dir):
+        #    if click.confirm('Do you want to continue?', default=True):
+        #        print('Do something')
+        # print(f"Outputs will be saved in {self.save_dir}")
 
         self.labels = labels
 
         self.feature_extract = feature_extract
 
-        if not os.path.exists(path):
-            raise ValueError("Provided model path {} doesn't exist".format(path))
+        # if not os.path.exists(path):
+        #    raise ValueError("Provided model path {} doesn't exist".format(path))
 
-        self.model = torch.load(path, map_location=torch.device(self.device))
+        self.model = model.to(self.device)
 
         self.is_inception = is_inception
 
+        self.labels = labels
+        self.preprocessing = preprocessing
+        self.augmentation = augmentation
+        self.mean = mean
+        self.std = std
+        self.batch_size = batch_size
+        self.num_workers = num_workers
+        self.epochs = epochs
+        self.start_epoch = start_epoch
+        self.input_size = input_size
+        self.lr = lr
+        self.momentum = momentum
+        self.val_every = val_every
+        self.save_every = save_every
+        self.shuffle = shuffle
+        self.criterion = criterion
+        self.optimizer = optim.SGD(self.__get_params_to_update(), lr=self.lr,
+                                   momentum=self.momentum)
+
+        if checkpoint_path:
+            if not os.path.exists(checkpoint_path):
+                raise ValueError("Checkpoint pathdoesn't exist")
+            else:
+                self.load_checkpoint(checkpoint_path)
+
     def __str__(self):
-        return self.id
+        return str(self.model)
 
     def __repr__(self):
         return self.model
+
+    def load_checkpoint(self, path):
+
+        if not os.path.exists(path):
+            raise ValueError("Checkpoint pathdoesn't exist")
+        checkpoint = torch.load(path, map_location=self.device)
+        self.model.load_state_dict(checkpoint['model_state_dict'])
+        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        self.start_epoch = checkpoint['epoch']
 
     def __get_params_to_update(self):
         """
@@ -109,19 +128,22 @@ class Classifier:
         :return: Parameters to update
         :rtype: list
         """
-        print("Parameters to update:")
+        # if click.confirm('Show parameters?', default=True):
+        #    print("Parameters:")
+        #    for name, param in self.model.named_parameters():
+        #        print("\t", name)
+
         params_to_update = []
         # params_to_update = self.model.parameters()
         if self.feature_extract:
             for name, param in self.model.named_parameters():
                 if param.requires_grad:
                     params_to_update.append(param)
-                    print("\t", name)
         else:
             for name, param in self.model.named_parameters():
                 if param.requires_grad:
                     pass
-                    print("\t", name)
+
         return params_to_update
 
     def save(self, path):
@@ -135,27 +157,11 @@ class Classifier:
         torch.save(self.model, path)
 
     def train(self,
-              train_df: pd.DataFrame,
-              val_df: pd.DataFrame,
-              score_function,
               data_dir: str,
               save_dir: str,
-              labels,
-              preprocessing,
-              augmentation,
-              mean,
-              std,
-              batch_size,
-              num_workers,
-              epochs=50,
-              start_epoch=0,
-              input_size=224,
-              lr=0.01,
-              momentum=0.9,
-              val_every=1,
-              save_every=3,
-              shuffle=False,
-              criterion=nn.BCELoss()
+              train_df: pd.DataFrame,
+              val_df: pd.DataFrame,
+              score_function
               ):
         """
 
@@ -164,25 +170,31 @@ class Classifier:
         """
 
         if train_df.empty:
-            raise ValueError("DataFrame cannot be empty")
+            raise ValueError("DataFrame train_df cannot be empty")
+
+        if val_df.empty:
+            raise ValueError("DataFrame val_df cannot be empty")
 
         if not os.path.exists(data_dir):
             raise ValueError("Data dir doesn't exist")
 
+        if not os.path.exists(save_dir):
+            raise ValueError("Save dir doesn't exist")
+
         if not callable(score_function):
-            raise ValueError("Score should be function")
-        optimizer = optim.SGD(self.__get_params_to_update(), lr=lr,
-                              momentum=momentum)
+            raise ValueError("Score should be a function")
 
-        train_loader = create_dataloader(data_dir=data_dir, dataframe=train_df, labels=labels,
-                                         preprocessing=preprocessing, augmentation=augmentation,
-                                         input_size=input_size, mean=mean, std=std, batch_size=batch_size,
-                                         shuffle=shuffle, num_workers=num_workers)
+        train_loader = create_dataloader(data_dir=data_dir, dataframe=train_df, labels=self.labels,
+                                         preprocessing=self.preprocessing, augmentation=self.augmentation,
+                                         input_size=self.input_size, mean=self.mean, std=self.std,
+                                         batch_size=self.batch_size,
+                                         shuffle=self.shuffle, num_workers=self.num_workers)
 
-        val_loader = create_dataloader(data_dir=data_dir, dataframe=val_df, labels=labels,
-                                       preprocessing=preprocessing, augmentation=None,
-                                       input_size=input_size, mean=mean, std=std, batch_size=batch_size,
-                                       shuffle=False, num_workers=num_workers)
+        val_loader = create_dataloader(data_dir=data_dir, dataframe=val_df, labels=self.labels,
+                                       preprocessing=self.preprocessing, augmentation=None,
+                                       input_size=self.input_size, mean=self.mean, std=self.std,
+                                       batch_size=self.batch_size,
+                                       shuffle=False, num_workers=self.num_workers)
         since = time.time()
 
         headers = ['epoch', 'loss', 'score']
@@ -192,8 +204,8 @@ class Classifier:
         val_stats = pd.DataFrame(columns=headers)
 
         # stats paths
-        train_stats_path = self.save_dir + self.id + '_train_stats.csv'
-        val_stats_path = self.save_dir + self.id + '_val_stats.csv'
+        train_stats_path = save_dir + 'train_stats.csv'
+        val_stats_path = save_dir + 'val_stats.csv'
 
         # best_fitness_from_train = 0.0
         # checkpoint = {'epoch': start_epoch,
@@ -202,13 +214,14 @@ class Classifier:
         #              'loss': 0.0,
         #              'score': 0.0}
         best_fitness_from_val = 0.0
-        best_val = {'epoch': start_epoch,
+        best_val = {'epoch': self.start_epoch,
                     'model_state_dict': self.model.state_dict(),
-                    'optimizer_state_dict': optimizer.state_dict(),
+                    'optimizer_state_dict': self.optimizer.state_dict(),
                     'loss': 0.0,
                     'score': 0.0}
 
-        for epoch in range(start_epoch, epochs):  # epoch -----------------------------------------
+        print(('\n' + '%10s' * 3) % ('Epoch', 'loss', 'score'))
+        for epoch in range(self.start_epoch, self.epochs):  # epoch -----------------------------------------
 
             self.model.train()
             running_loss = 0.0
@@ -217,44 +230,45 @@ class Classifier:
             trues = pd.DataFrame(columns=self.labels)
             # progres bar
             nb = len(train_loader)
-            print(('\n' + '%10s' * 3) % ('Epoch', 'loss', 'score'))
             pbar = tqdm(train_loader, total=nb, ncols=NCOLS,
                         bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')  # progress bar
             # batch ----------------------------------------------------------------------------
-            for i, (tag_id, inputs, labels) in enumerate(pbar):
+            for i, (tag_id, inputs, labels) in enumerate(pbar, 1):
                 inputs, labels = inputs.to(self.device), labels.to(self.device)
 
                 # zero the parameter gradients
-                optimizer.zero_grad()
+                self.optimizer.zero_grad()
                 with torch.set_grad_enabled(True):
                     if self.is_inception:
                         # From https://discuss.pytorch.org/t/how-to-optimize-inception-model-with-auxiliary-classifiers/7958
                         outputs, aux_outputs = self.model(inputs)
-                        loss1 = criterion(outputs, labels)
-                        loss2 = criterion(aux_outputs, labels)
+                        loss1 = self.criterion(outputs, labels)
+                        loss2 = self.criterion(aux_outputs, labels)
                         loss = loss1 + 0.4 * loss2
                     else:
                         outputs = self.model(inputs)
-                        loss = criterion(outputs, labels)
+                        loss = self.criterion(outputs, labels)
 
                     # backward + optimize only if in training phase
                     loss.backward()
-                    optimizer.step()
+                    self.optimizer.step()
 
                 preds = preds.append(pd.DataFrame(outputs.tolist(), columns=self.labels))
                 trues = trues.append(pd.DataFrame(labels.tolist(), columns=self.labels))
 
                 running_loss += loss.item()
-                score, _ = score_function(pd.DataFrame(outputs.tolist(), columns=self.labels),
-                                          pd.DataFrame(labels.tolist(), columns=self.labels))
+                score, labels_score = score_function(preds, trues)
+
+                # score, _ = score_function(pd.DataFrame(outputs.tolist(), columns=self.labels),
+                #                          pd.DataFrame(labels.tolist(), columns=self.labels))
+
                 # bar update
-                pbar.set_description(('%10s' * 1 + '%10.4g' * 2) % (f'{epoch + 1}/{epochs}', loss.item(), score))
+                pbar.set_description(
+                    ('%10s' * 1 + '%10.4g' * 2) % (f'{epoch + 1}/{self.epochs}', running_loss / i, score))
             # end batch ---------------------------------------------------------------------------
 
             score, labels_score = score_function(preds, trues)
             epoch_loss = running_loss / len(train_loader)
-
-            pbar.set_description(('%10s' * 1 + '%10.4g' * 2) % (f'{epoch + 1}/{epochs}', epoch_loss, score))
 
             # zapisywanie statystyk -------------------------------------------
             epoch_stats = [epoch + 1, epoch_loss, score]
@@ -262,13 +276,13 @@ class Classifier:
             train_stats = train_stats.append(pd.DataFrame([epoch_stats], columns=headers), ignore_index=True)
             train_stats.to_csv(path_or_buf=train_stats_path, index=False)
 
-            final_epoch = (epoch + 1 == epochs)
+            final_epoch = (epoch + 1 == self.epochs)
             # walidacja -------------------------------------------
-            noval = ((epoch + 1) % val_every != 0)
+            noval = ((epoch + 1) % self.val_every != 0)
             if not noval or final_epoch:
                 val_epoch_loss, val_score, val_labels_score = self.val(val_loader=val_loader,
                                                                        score_function=score_function,
-                                                                       criterion=criterion)
+                                                                       criterion=self.criterion)
                 val_epoch_stats = [epoch + 1, val_epoch_loss, val_score]
                 val_epoch_stats.extend(val_labels_score)
                 val_stats = val_stats.append(pd.DataFrame([val_epoch_stats], columns=headers), ignore_index=True)
@@ -276,21 +290,21 @@ class Classifier:
                 if val_score > best_fitness_from_val:
                     best_val = {'epoch': epoch,
                                 'model_state_dict': self.model.state_dict(),
-                                'optimizer_state_dict': optimizer.state_dict(),
+                                'optimizer_state_dict': self.optimizer.state_dict(),
                                 'loss': val_epoch_loss,
                                 'score': val_score}
                     best_fitness_from_val = val_score
 
             # autosave -------------------------------------------
-            nosave = ((epoch + 1) % save_every != 0)
+            nosave = ((epoch + 1) % self.save_every != 0)
             if not nosave or final_epoch:  # if save
                 print("Autosave...", end=" ")
                 torch.save({'epoch': epoch,
                             'model_state_dict': self.model.state_dict(),
-                            'optimizer_state_dict': optimizer.state_dict(),
+                            'optimizer_state_dict': self.optimizer.state_dict(),
                             'loss': epoch_loss,
-                            'score': score}, save_dir + self.id + "_autosave.pth")
-                print("saved in " + save_dir + self.id + "_autosave.pth")
+                            'score': score}, save_dir + "autosave.pth")
+                print("saved in " + save_dir + "autosave.pth")
 
             # zapis najlepszego dopasowania---------------------------------
             # if score > best_fitness_from_train:
@@ -307,8 +321,8 @@ class Classifier:
 
             if not nosave or final_epoch:
                 print("Best fitness...", end=" ")
-                torch.save(best_val, save_dir + self.id + "_bestfitness_from_validation.pth")
-                print("saved in " + save_dir + self.id + "_bestfitness_from_validation.pth")
+                torch.save(best_val, save_dir + "bestfitness_from_validation.pth")
+                print("saved in " + save_dir + "bestfitness_from_validation.pth")
         # end epoch ------------------------------------------------------------------------------
 
         time_elapsed = time.time() - since
@@ -329,7 +343,7 @@ class Classifier:
 
         nb = len(val_loader)
         pbar = tqdm(val_loader, total=nb, ncols=NCOLS, bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')  # progress bar
-        for i, (tag_id, inputs, labels) in enumerate(pbar):
+        for i, (tag_id, inputs, labels) in enumerate(pbar, 1):
             inputs, labels = inputs.to(self.device), labels.to(self.device)
 
             with torch.set_grad_enabled(False):
@@ -340,14 +354,15 @@ class Classifier:
             trues = trues.append(pd.DataFrame(labels.tolist(), columns=self.labels))
 
             running_loss += loss.item()
-            score, _ = score_function(pd.DataFrame(outputs.tolist(), columns=self.labels),
-                                      pd.DataFrame(labels.tolist(), columns=self.labels))
+            score, labels_score = score_function(preds, trues)
+
+            # score, _ = score_function(pd.DataFrame(outputs.tolist(), columns=self.labels),
+            #                          pd.DataFrame(labels.tolist(), columns=self.labels))
             # bar update
-            pbar.set_description(('%10s' + '%10.4g' * 2) % ("Val:", loss.item(), score))
+            pbar.set_description(('%10s' + '%10.4g' * 2) % ("Val", running_loss / i, score))
 
         score, labels_score = score_function(preds, trues)
         epoch_loss = running_loss / len(val_loader)
-        pbar.set_description(('%10s' + '%10.4g' * 2) % ("Val:", epoch_loss, score))
 
         return epoch_loss, score, labels_score
 
@@ -355,14 +370,7 @@ class Classifier:
                test_df: pd.DataFrame,
                data_dir: str,
                save_dir: str,
-               labels,
-               preprocessing,
-               mean,
-               std,
-               batch_size,
-               num_workers,
-               input_size=224,
-               shuffle=False,
+               silent_mode=False
                ) -> pd.DataFrame:
         """
 
@@ -375,208 +383,44 @@ class Classifier:
         if not os.path.exists(data_dir):
             raise ValueError("Data dir doesn't exist")
 
-        dataloader = create_dataloader(data_dir=data_dir, dataframe=test_df, labels=labels,
-                                       preprocessing=preprocessing, augmentation=None,
-                                       input_size=input_size, mean=mean, std=std, batch_size=batch_size,
-                                       shuffle=shuffle, num_workers=num_workers)
+        dataloader = create_dataloader(data_dir=data_dir, dataframe=test_df, labels=self.labels,
+                                       preprocessing=self.preprocessing, augmentation=None,
+                                       input_size=self.input_size, mean=self.mean, std=self.std,
+                                       batch_size=self.batch_size,
+                                       shuffle=False, num_workers=self.num_workers)
 
-        nb = len(dataloader)
-        pbar = tqdm(dataloader, desc="Detecting", total=nb, ncols=NCOLS,
-                    bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')  # progress bar
         answer = pd.DataFrame(columns=self.labels)
-        with torch.no_grad():
-            self.model.eval()
-            for i, (tag_id, inputs, labels) in enumerate(pbar, 0):
-                inputs = inputs.to(self.device)
-                outputs = self.model(inputs)
-                answer = answer.append(pd.DataFrame(outputs.tolist(), columns=self.labels, index=tag_id.tolist()))
+
+        if not silent_mode:
+            nb = len(dataloader)
+            pbar = tqdm(dataloader, desc="Detecting", total=nb, ncols=NCOLS,
+                        bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')  # progress bar
+
+            with torch.no_grad():
+                self.model.eval()
+                for i, (tag_id, inputs, labels) in enumerate(pbar, 0):
+                    inputs = inputs.to(self.device)
+                    outputs = self.model(inputs)
+                    answer = answer.append(pd.DataFrame(outputs.tolist(), columns=self.labels, index=tag_id.tolist()))
+        else:
+            with torch.no_grad():
+                self.model.eval()
+                for tag_id, inputs, labels in dataloader:
+                    inputs = inputs.to(self.device)
+                    outputs = self.model(inputs)
+                    answer = answer.append(pd.DataFrame(outputs.tolist(), columns=self.labels, index=tag_id.tolist()))
+
         answer.index.name = 'tag_id'
-        answer.to_csv(path_or_buf=save_dir + self.id + "_answer.csv")
+        answer.to_csv(path_or_buf=save_dir + "answer.csv")
         return answer
 
     def resume(self,
-               PATH,
+               path,
                train_df: pd.DataFrame,
                val_df: pd.DataFrame,
                score_function,
-               data_dir: str,
-               save_dir: str,
-               labels,
-               preprocessing,
-               augmentation,
-               mean,
-               std,
-               batch_size,
-               num_workers,
-               epochs=50,
-               input_size=224,
-               lr=0.01,
-               momentum=0.9,
-               val_every=1,
-               save_every=3,
-               shuffle=False,
-               criterion=nn.BCELoss()):
+               data_dir: str, ):
 
-        checkpoint = torch.load(PATH)
-        self.model.load_state_dict(checkpoint['model_state_dict'])
-        start_epoch = checkpoint['epoch']
-        loss = checkpoint['loss']
+        self.load_checkpoint(path=path)
 
-        if train_df.empty:
-            raise ValueError("DataFrame cannot be empty")
-
-        if not os.path.exists(data_dir):
-            raise ValueError("Data dir doesn't exist")
-
-        if not callable(score_function):
-            raise ValueError("Score should be function")
-        optimizer = optim.SGD(self.__get_params_to_update(), lr=lr,
-                              momentum=momentum)
-        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-
-        train_loader = create_dataloader(data_dir=data_dir, dataframe=train_df, labels=labels,
-                                         preprocessing=preprocessing, augmentation=augmentation,
-                                         input_size=input_size, mean=mean, std=std, batch_size=batch_size,
-                                         shuffle=shuffle, num_workers=num_workers)
-
-        val_loader = create_dataloader(data_dir=data_dir, dataframe=val_df, labels=labels,
-                                       preprocessing=preprocessing, augmentation=None,
-                                       input_size=input_size, mean=mean, std=std, batch_size=batch_size,
-                                       shuffle=False, num_workers=num_workers)
-        since = time.time()
-
-        headers = ['epoch', 'loss', 'score']
-        headers.extend(self.labels)
-        # stats dataframes
-        train_stats = pd.DataFrame(columns=headers)
-        val_stats = pd.DataFrame(columns=headers)
-
-        # stats paths
-        train_stats_path = self.save_dir + self.id + '_train_stats.csv'
-        val_stats_path = self.save_dir + self.id + '_val_stats.csv'
-
-        best_fitness = 0.0
-        checkpoint = {'epoch': start_epoch,
-                      'model_state_dict': self.model.state_dict(),
-                      'optimizer_state_dict': optimizer.state_dict(),
-                      'loss': 0.0,
-                      'score': 0.0}
-
-        for epoch in range(start_epoch, epochs):  # epoch -----------------------------------------
-
-            self.model.train()
-
-            running_loss = 0.0
-
-            preds = pd.DataFrame(columns=self.labels)
-            trues = pd.DataFrame(columns=self.labels)
-            # progres bar
-            nb = len(train_loader)
-            print(('\n' + '%10s' * 3) % ('Epoch', 'loss', 'score'))
-            pbar = tqdm(train_loader, total=nb, ncols=NCOLS,
-                        bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')  # progress bar
-            # batch ----------------------------------------------------------------------------
-            for i, (tag_id, inputs, labels) in enumerate(pbar):
-                inputs, labels = inputs.to(self.device), labels.to(self.device)
-
-                # zero the parameter gradients
-                optimizer.zero_grad()
-                with torch.set_grad_enabled(True):
-                    if self.is_inception:
-                        # From https://discuss.pytorch.org/t/how-to-optimize-inception-model-with-auxiliary-classifiers/7958
-                        outputs, aux_outputs = self.model(inputs)
-                        loss1 = criterion(outputs, labels)
-                        loss2 = criterion(aux_outputs, labels)
-                        loss = loss1 + 0.4 * loss2
-                    else:
-                        outputs = self.model(inputs)
-                        loss = criterion(outputs, labels)
-
-                    # backward + optimize only if in training phase
-                    loss.backward()
-                    optimizer.step()
-
-                preds = preds.append(pd.DataFrame(outputs.tolist(), columns=self.labels))
-                trues = trues.append(pd.DataFrame(labels.tolist(), columns=self.labels))
-
-                running_loss += loss.item()
-                score, _ = score_function(pd.DataFrame(outputs.tolist(), columns=self.labels),
-                                          pd.DataFrame(labels.tolist(), columns=self.labels))
-                # bar update
-                pbar.set_description(('%10s' * 1 + '%10.4g' * 2) % (f'{epoch + 1}/{epochs}', loss.item(), score))
-            # end batch ---------------------------------------------------------------------------
-
-            score, labels_score = score_function(preds, trues)
-            epoch_loss = running_loss / len(train_loader)
-
-            pbar.set_description(('%10s' * 1 + '%10.4g' * 2) % (f'{epoch + 1}/{epochs}', epoch_loss, score))
-
-            # zapisywanie statystyk -------------------------------------------
-            epoch_stats = [epoch + 1, epoch_loss, score]
-            epoch_stats.extend(labels_score)
-            train_stats = train_stats.append(pd.DataFrame([epoch_stats], columns=headers), ignore_index=True)
-            train_stats.to_csv(path_or_buf=train_stats_path, index=False)
-
-            final_epoch = (epoch + 1 == epochs)
-            # walidacja -------------------------------------------
-            noval = ((epoch + 1) % val_every != 0)
-            if not noval or final_epoch:
-                val_epoch_loss, val_score, val_labels_score = self.val(val_loader=val_loader,
-                                                                       score_function=score_function,
-                                                                       criterion=criterion)
-                val_epoch_stats = [epoch + 1, val_epoch_loss, val_score]
-                val_epoch_stats.extend(val_labels_score)
-                val_stats = val_stats.append(pd.DataFrame([val_epoch_stats], columns=headers), ignore_index=True)
-                val_stats.to_csv(path_or_buf=val_stats_path, index=False)
-
-            # autosave -------------------------------------------
-            nosave = ((epoch + 1) % save_every != 0)
-            if not nosave or final_epoch:
-                print("Autosave")
-                torch.save({'epoch': epoch,
-                            'model_state_dict': self.model.state_dict(),
-                            'optimizer_state_dict': optimizer.state_dict(),
-                            'loss': loss,
-                            'score': score}, save_dir + self.id + "_autosave.pth")
-
-            # zapis najlepszego dopasowania---------------------------------
-            if score > best_fitness:
-                checkpoint = {'epoch': epoch,
-                              'model_state_dict': self.model.state_dict(),
-                              'optimizer_state_dict': optimizer.state_dict(),
-                              'loss': loss,
-                              'score': score}
-                best_fitness = score
-            if not nosave or final_epoch:
-                torch.save(checkpoint, save_dir + self.id + "_bestfitness.pth")
-        # end epoch ------------------------------------------------------------------------------
-
-        time_elapsed = time.time() - since
-        print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
-
-        return self.model, train_stats, val_stats
-
-    def show_random_images(self, num: int, train_df: pd.DataFrame, data_dir: str) -> None:
-        """
-
-        :param num: Liczba obrazów do wyświetlenia
-        :type num: int
-        """
-        transform = transforms.Compose(self.preprocessing + self.augmentation + self.adapt)
-        dataset = ImageDataset(train_df, data_dir, self.labels, transform)
-        indices = list(range(len(dataset)))
-        np.random.shuffle(indices)
-        idx = indices[:num]
-        from torch.utils.data.sampler import SubsetRandomSampler
-        sampler = SubsetRandomSampler(idx)
-        loader = DataLoader(dataset, sampler=sampler, batch_size=num)
-        dataiter = iter(loader)
-        tag_id, images, labels = dataiter.next()
-        to_pil = transforms.ToPILImage()
-        fig = plt.figure(figsize=(20, 20))
-        for ii in range(len(images)):
-            image = to_pil(images[ii])
-            fig.add_subplot(1, len(images), ii + 1)
-            plt.axis('off')
-            plt.imshow(image)
-        plt.show()
+        self.train(data_dir, train_df, val_df, score_function, )

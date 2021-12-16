@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="aggressive_ensemble",
-    version="0.2.6",
+    version="0.3.8",
     author="Maciej Pajak",
     author_email="mpajak98@gmail.com",
     description="A package implementing aggressive ensemble methods",
@@ -26,13 +26,12 @@ setuptools.setup(
     install_requires=[
         "pandas",
         "torch",
-        "pretrainedmodels",
         "torchvision",
         "matplotlib",
         "numpy",
-        "imgaug",
+        "imgaug>=0.4.0",
         "Pillow",
         "scikit-learn",
         "setuptools",
-        "pkbar"],
+        "tqdm"],
 )

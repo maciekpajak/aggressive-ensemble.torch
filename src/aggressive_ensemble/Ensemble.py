@@ -2,10 +2,9 @@ import torch
 import pandas as pd
 import warnings
 import os
-
+import time
 from .Classifier import Classifier
-from .tools.rank_preds import rank_preds
-from .tools.merge_answers import merge_answers_by_rankings, merge_answers_by_probabilities
+from .utils.general import rank_preds, merge_answers_by_rankings, merge_answers_by_probabilities
 
 
 class Ensemble:
@@ -14,52 +13,50 @@ class Ensemble:
 
 
     """
+    ensemble = {}
+    models = {}
 
-    def __init__(self, root_dir: str,
+    def __init__(self,
+                 id: str,
+                 save_dir: str,
                  labels: list,
-                 models: dict,
-                 ensemble: dict = None,
-                 max_subensemble_models: int = 1,
-                 mode: str = "auto",
+                 ensemble_structure: dict = None,
                  device: str = "cpu"):
         """Konstuktor klasy
 
         :param ensemble: Konfiguracja każdego modelu komitetu
         :type ensemble: dict
         """
-        if not os.path.exists(root_dir):
-            raise ValueError("Root_dir doesn't exist")
+        self.id = id
 
         if not labels:
             raise ValueError("Labels list cannot be empty")
 
-        if not models:
-            raise ValueError("tools cannot be empty")
-
-        if mode == "manual":
-            warnings.warn("Manual mode")
-
-        if mode not in ["manual", "auto"]:
-            raise ValueError("Mode should be either manual or auto")
-
-        if not isinstance(max_subensemble_models, int) or max_subensemble_models < 1:
-            raise ValueError("Argument max_subensemble_models should be int and be greater than 1")
-
         if device not in ["cpu", "gpu"]:
             raise ValueError("Device should be either cpu or gpu")
 
-        self.mode = mode
-        self.max_subensemble_models = max_subensemble_models
         self.device = device
-        self.root_dir = root_dir
-        self.labels = labels
-        self.models = {m: Classifier(self.labels, models[m], self.device) for m in models}
-        self.models_stats = {m: None for m in models}
-        self.ensemble_stats = pd.DataFrame(columns=self.labels)
-        self.ensemble = {} if ensemble is None else ensemble
 
-        if not os.path.exists(root_dir + "ensemble_models/"):
-            os.mkdir(root_dir + "ensemble_models/")
+        self.labels = labels
+
+        # self.classifiers = {}
+        # for subensemble_name, subensemble_items in self.ensemble.items():
+        #    for model in subensemble_items["classifiers"]:
+        #        self.classifiers[model.id] = model
+
+        # self.answers_dict = {c.id: None for c in classifiers}
+
+        self.ensemble = ensemble_structure
+        # self.ensemble_stats = pd.DataFrame(columns=self.labels)
+        # self.ensemble = {} if ensemble is None else ensemble
+
+        self.save_dir = save_dir + self.id + '/'
+        if not os.path.exists(self.save_dir):
+            os.makedirs(self.save_dir)
+        print(f"Outputs will be saved in {self.save_dir}")
+
+    def __repr__(self):
+        return self.ensemble
 
     def __str__(self):
         x = "Ensemble:\n"
@@ -70,12 +67,17 @@ class Ensemble:
                 x = x + "  " + sub + "\n\t\tlabels: \n"
                 for l in self.ensemble[sub]["labels"]:
                     x = x + "\t\t\t" + l + "\n"
-                x = x + "\t\tmodels: \n"
-                for m in self.ensemble[sub]["models"]:
+                x = x + "\t\tclassifiers: \n"
+                for m in self.ensemble[sub]["classifiers"]:
                     x = x + "\t\t\t" + m + "\n"
         return x
 
-    def train(self, train_df: pd.DataFrame, val_df: pd.DataFrame, data_dir: str, score_function):
+    def train(self,
+              train_df: pd.DataFrame,
+              val_df: pd.DataFrame,
+              data_dir: str,
+              score_function,
+              silent_mode=False):
         """
 
         :return:
@@ -90,39 +92,41 @@ class Ensemble:
         if not callable(score_function):
             raise ValueError("Score should be function")
 
-        train_stats_path = self.root_dir + "training_stats/"
-        if not os.path.exists(train_stats_path):
-            os.mkdir(train_stats_path)
-        print("Training stats will be saved in " + train_stats_path)
-
+        c_dict = {}
         print("Training...")
-        for model in self.models:
-            # zaladowanie modelu
-            # m = Classifier(self.labels, self.models[model], self.device)
 
-            # trening modelu
-            print("Training model: " + model)
-            (_, stats) = self.models[model].train(train_df, val_df, data_dir, score_function)
-            self.models_stats[model] = stats
-            # self.models_config[model.id]["path"] = self.root_dir + "ensemble_models/" + model.id + ".pth"  # zmiana sciezki modelu
+        for subensemble_name, subensemble_items in self.ensemble.items():
+            if not silent_mode:
+                print("├╴" + subensemble_name)
 
-            # zapisanie modelu
-            if(self.models[model].save_to != ""):
-                self.models[model].save(self.models[model].save_to + model + ".pth")
-                print("Trained model saved: " + self.models[model].save_to + model + ".pth")
-            else:
-                torch.save(self.models[model].model, self.root_dir + "ensemble_models/" + model + ".pth")
-                print("Trained model saved: " + self.root_dir + "ensemble_models/" + model + ".pth")
+            save_sub_dir = self.save_dir + subensemble_name + '/'
+            if not os.path.exists(save_sub_dir):
+                os.makedirs(save_sub_dir)
+            # subensemble models detecting --------------------------------------------
+            for model in subensemble_items["classifiers"]:
 
-            # zapisanie statystyk modelu
-            stats["train"].to_csv(path_or_buf=train_stats_path + model + "train_stats.csv", index=False,
-                                  header=True)
-            print("Trained model train_stats saved: " + train_stats_path + model + "train_stats.csv")
+                if not silent_mode:
+                    print("│ └╴" + model.id)
 
-            stats["val"].to_csv(path_or_buf=train_stats_path + model + "val_stats.csv", index=False, header=True)
-            print("Trained model val_stats saved: " + train_stats_path + model + "val_stats.csv")
+                save_dir = save_sub_dir + model.id + '/'
+                if not os.path.exists(save_dir):
+                    os.makedirs(save_dir)
 
-    def test(self, test_df: pd.DataFrame, data_dir: str) -> (pd.DataFrame, pd.DataFrame, pd.DataFrame):
+                if model.id in c_dict.keys():
+                    continue
+
+                (_, train_stats, val_stats) = model.train(data_dir=data_dir,
+                                                          save_dir=save_dir,
+                                                          train_df=train_df,
+                                                          val_df=val_df,
+                                                          score_function=score_function)
+                c_dict[model.id] = True
+            # end subensemble models detecting --------------------------------------
+
+    def detect(self,
+               test_df: pd.DataFrame,
+               data_dir: str,
+               silent_mode=False) -> (pd.DataFrame, pd.DataFrame, pd.DataFrame):
         """
 
         :return:
@@ -136,68 +140,61 @@ class Ensemble:
 
         answer_probabilities = pd.DataFrame(columns=self.labels)
         answer_ranking = pd.DataFrame(columns=self.labels)
-
-        answers_dir = {}
-        print('Testing...')
-        for subensemble in self.ensemble:
-            for model in self.ensemble[subensemble]["models"]:
-
-                print("Testing model: " + model)
-                # zaladowanie modelu
-                # m = Classifier(self.labels, self.models[model], self.device)
-                if model in answers_dir.keys():
-                    continue
-                if model not in self.models.keys():
-                    raise ValueError("There is no {} in models".format(model))
-                ans = self.models[model].test(test_df, data_dir)
-                answers_dir[model] = ans
-
-        for subensemble in self.ensemble:
+        answer_01 = pd.DataFrame(columns=self.labels)
+        answers_dict = {}
+        if not silent_mode:
+            print('Detecting...')
+            print(self.id)
+        for subensemble_name, subensemble_items in self.ensemble.items():
+            if not silent_mode:
+                print("├╴" + subensemble_name)
             answers = []
-            print("Merging subensemble: " + subensemble + ":")
-            for model in self.ensemble[subensemble]["models"]:
-                print("\t" + model)
-                ans = answers_dir[model]
-                answers.extend([ans])
+            subensemble_labels = subensemble_items["labels"]
 
-            answer1 = merge_answers_by_probabilities([a for a in answers])
-            answer2 = merge_answers_by_rankings([rank_preds(a).reset_index(drop=True) for a in answers])
-            subensemble_labels = self.ensemble[subensemble]["labels"]
+            save_sub_dir = self.save_dir + subensemble_name + '/'
+            if not os.path.exists(save_sub_dir):
+                os.makedirs(save_sub_dir)
+            # subensemble models detecting --------------------------------------------
+            for model in subensemble_items["classifiers"]:
+
+                if not silent_mode:
+                    print("│ └╴" + model.id)
+
+                save_dir = save_sub_dir + model.id + '/'
+                if not os.path.exists(save_dir):
+                    os.makedirs(save_dir)
+
+                if model.id in answers_dict.keys():
+                    answers.extend([answers_dict[model.id][subensemble_labels]])
+                    answers_dict[model.id].to_csv(save_dir + "answer.csv")
+                    continue
+
+                ans = model.detect(test_df=test_df,
+                                   data_dir=data_dir,
+                                   save_dir=save_dir,
+                                   silent_mode=silent_mode)
+                answers_dict[model.id] = ans
+                answers.extend([ans[subensemble_labels]])
+            # end subensemble models detecting --------------------------------------
+
+            if not silent_mode:
+                print("-- merging " + subensemble_name)
+
+            answer1 = merge_answers_by_probabilities(*answers)
+
+            ranked_answers = [rank_preds(a).reset_index(drop=True) for a in answers]
+            answer2 = merge_answers_by_rankings(*ranked_answers)
+
+            answer1.to_csv(save_sub_dir + "subensemble_answer_probabilities.csv")
+            answer2.to_csv(save_sub_dir + "subensemble_answer_ranking.csv", index=False)
+
             answer_probabilities[subensemble_labels] = answer1[subensemble_labels]
             answer_ranking[subensemble_labels] = answer2[subensemble_labels]
 
-        print(answer_probabilities.head())
-        answer_01 = answer_probabilities > 0.5
-        print(answer_01.head())
-        print(answer_ranking.head())
+            answer_01 = answer_probabilities > 0.5
+
+            answer_probabilities.to_csv(self.save_dir + "ensemble_answer_probabilities.csv")
+            answer_01.to_csv(self.save_dir + "ensemble_answer_01.csv")
+            answer_ranking.to_csv(self.save_dir + "ensemble_answer_ranking.csv", index=False)
 
         return answer_probabilities, answer_01, answer_ranking
-
-    def build_ensemble(self):
-        """
-        Automatycznie buduje komitet na podstawie statystyk wytrenowanych modeli
-        Domyślnie przypisuje wszysktie modele do wszystkich cech
-        :return:
-        :rtype:
-        """
-        for stat in self.models_stats:
-            last = self.models_stats[stat]["val"].xs(self.models_stats[stat]["val"].shape[0] - 1)
-            last.name = stat
-            self.ensemble_stats = self.ensemble_stats.append(last)
-        i = 1
-        for label in self.labels:
-            tmp = self.ensemble_stats.sort_values(by=label, ascending=False)
-            m = []
-            for j in range(0, self.max_subensemble_models, 1):
-                m = m + [tmp.index[j]]
-            merged = False
-            for sub in self.ensemble:
-                if self.ensemble[sub]["models"] == m:
-                    self.ensemble[sub]["labels"] = self.ensemble[sub]["labels"] + [label]
-                    merged = True
-            if not merged:
-                self.ensemble["subensemble" + str(i)] = {"labels": [label], "models": m}
-                i += 1
-
-        print("Ensemble built")
-        print(self)
