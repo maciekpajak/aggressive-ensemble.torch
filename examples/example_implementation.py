@@ -2,11 +2,12 @@ import copy
 
 import torch
 
-from src.aggressive_ensemble.Ensemble import Classifier, Ensemble
+from src.aggressive_ensemble.Ensemble import Classifier
+from tests import Classifier2
 from src.aggressive_ensemble.utils.metrics import mAP_score
 import src.aggressive_ensemble.utils.transforms as t
 import src.aggressive_ensemble.utils.augmentations as a
-from src.aggressive_ensemble.utils.general import show_random_images, check
+import src.aggressive_ensemble.utils.general as gen
 import pandas as pd
 from torch import nn
 
@@ -100,10 +101,11 @@ if __name__ == '__main__':
                             preprocessing=[t.ExtractPolygon(), t.RotateToHorizontal()],
                             augmentation=[a.RandomHorizontalFlip(), a.RandomVerticalFlip()],
                             mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225),
-                            batch_size=5, num_workers=1, epochs=1, start_epoch=0,
+                            batch_size=5, num_workers=1, epochs=15, start_epoch=0,
                             input_size=224, lr=0.01, momentum=0.9, val_every=1,
-                            save_every=1, shuffle=False, criterion=nn.BCELoss())
+                            save_every=5, shuffle=False, criterion=nn.BCELoss())
 
+    resnet50_2.train(save_dir=save_dir,train_df=train_df, val_df=val_df, data_dir=data_dir, score_function=mAP_score)
     # show_random_images(num=5,
     #                   df=train_df,
     #                   data_dir=data_dir,
@@ -132,16 +134,49 @@ if __name__ == '__main__':
             "classifiers": [resnet50_1, resnet50_1, resnet50_2],
         }
     }
-    ensemble = Ensemble(id='Testensemble',
-                        save_dir=save_dir,
-                        labels=labels,
-                        ensemble_structure=ensemble_structure,
-                        device="cpu")
+    train_loader = gen.create_dataloader(data_dir=data_dir, dataframe=train_df, labels=labels,
+                                         preprocessing=[t.ExtractPolygon(), t.RotateToHorizontal()],
+                                         augmentation=[a.RandomHorizontalFlip(), a.RandomVerticalFlip()],
+                                         input_size=224, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225),
+                                         batch_size=5,
+                                         shuffle=True, num_workers=1)
+    val_loader = gen.create_dataloader(data_dir=data_dir, dataframe=val_df, labels=labels,
+                                       preprocessing=[t.ExtractPolygon(), t.RotateToHorizontal()],
+                                       augmentation=None,
+                                       input_size=224, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225),
+                                       batch_size=5,
+                                       shuffle=True, num_workers=1)
+    classifier1 = Classifier2.Classifier2(name="1", model=copy.deepcopy(resnet), device=device)
+    (_, train_stats, val_stats, _) = classifier1.train(save_dir=save_dir,
+                                             score_function=mAP_score,
+                                             train_loader=train_loader,
+                                             val_loader=val_loader,
+                                             epochs=5,
+                                             start_epoch=0,
+                                             lr=0.01,
+                                             momentum=0.9,
+                                             val_every=1,
+                                             save_every=3,
+                                             criterion=nn.BCELoss(),
+                                             optimizer_state_dict=None)
 
-    ensemble.train(train_df=train_df, val_df=val_df, data_dir=data_dir, score_function=mAP_score)
+    test_loader = gen.create_dataloader(data_dir=data_dir, dataframe=test_df, labels=labels,
+                                        preprocessing=[t.ExtractPolygon(), t.RotateToHorizontal()],
+                                        augmentation=[a.RandomHorizontalFlip(), a.RandomVerticalFlip()],
+                                        input_size=224, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225),
+                                        batch_size=5,
+                                        shuffle=True, num_workers=1)
+    answer = classifier1(test_loader)
+    # ensemble = Ensemble(id='Testensemble',
+    #                    save_dir=save_dir,
+    #                    labels=labels,
+    #                    ensemble_structure=ensemble_structure,
+    #                    device="cpu")
 
-    answer_probabilities, answer_01, answer_ranking = ensemble.detect(data_dir=data_dir, test_df=test_df,
-                                                                      silent_mode=False)
+    # ensemble.train(train_df=train_df, val_df=val_df, data_dir=data_dir, score_function=mAP_score)
+
+    # answer_probabilities, answer_01, answer_ranking = ensemble.detect(data_dir=data_dir, test_df=test_df,
+    #                                                                  silent_mode=False)
 
     # a1, a2, a3 = pd.DataFrame(columns=labels), pd.DataFrame(columns=labels), pd.DataFrame(columns=labels)
     # for idx in test_df.index.values:

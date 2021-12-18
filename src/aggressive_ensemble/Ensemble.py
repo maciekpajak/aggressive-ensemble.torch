@@ -115,7 +115,7 @@ class Ensemble:
                 if model.id in c_dict.keys():
                     continue
 
-                (_, train_stats, val_stats) = model.train(data_dir=data_dir,
+                (_, train_stats, val_stats,_) = model.train(data_dir=data_dir,
                                                           save_dir=save_dir,
                                                           train_df=train_df,
                                                           val_df=val_df,

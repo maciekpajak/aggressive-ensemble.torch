@@ -214,6 +214,11 @@ class Classifier:
         #              'loss': 0.0,
         #              'score': 0.0}
         best_fitness_from_val = 0.0
+        val_score = 0.0
+        val_loss = 0.0
+        the_last_loss = 100
+        patience = 2
+        trigger_times = 0
         best_val = {'epoch': self.start_epoch,
                     'model_state_dict': self.model.state_dict(),
                     'optimizer_state_dict': self.optimizer.state_dict(),
@@ -280,20 +285,22 @@ class Classifier:
             # walidacja -------------------------------------------
             noval = ((epoch + 1) % self.val_every != 0)
             if not noval or final_epoch:
-                val_epoch_loss, val_score, val_labels_score = self.val(val_loader=val_loader,
-                                                                       score_function=score_function,
-                                                                       criterion=self.criterion)
-                val_epoch_stats = [epoch + 1, val_epoch_loss, val_score]
+                val_loss, val_score, val_labels_score = self.val(val_loader=val_loader,
+                                                                 score_function=score_function,
+                                                                 criterion=self.criterion)
+                val_epoch_stats = [epoch + 1, val_loss, val_score]
                 val_epoch_stats.extend(val_labels_score)
                 val_stats = val_stats.append(pd.DataFrame([val_epoch_stats], columns=headers), ignore_index=True)
                 val_stats.to_csv(path_or_buf=val_stats_path, index=False)
-                if val_score > best_fitness_from_val:
-                    best_val = {'epoch': epoch,
-                                'model_state_dict': self.model.state_dict(),
-                                'optimizer_state_dict': self.optimizer.state_dict(),
-                                'loss': val_epoch_loss,
-                                'score': val_score}
-                    best_fitness_from_val = val_score
+            if val_score > best_fitness_from_val:
+                best_val = {'epoch': epoch,
+                            'model_state_dict': self.model.state_dict(),
+                            'loss': val_loss,
+                            'score': val_score}
+                best_fitness_from_val = val_score
+                print("New best fitness!", end=" ")
+                torch.save(best_val, save_dir + "bestfitness_from_validation.pth")
+                print("Saved in " + save_dir + "bestfitness_from_validation.pth")
 
             # autosave -------------------------------------------
             nosave = ((epoch + 1) % self.save_every != 0)
@@ -306,29 +313,29 @@ class Classifier:
                             'score': score}, save_dir + "autosave.pth")
                 print("saved in " + save_dir + "autosave.pth")
 
-            # zapis najlepszego dopasowania---------------------------------
-            # if score > best_fitness_from_train:
-            #    checkpoint = {'epoch': epoch,
-            #                  'model_state_dict': self.model.state_dict(),
-            #                  'optimizer_state_dict': optimizer.state_dict(),
-            #                  'loss': epoch_loss,
-            #                  'score': score}
-            #    best_fitness_from_train = score
-            # if not nosave or final_epoch:
-            #    print("Best fitness...", end=" ")
-            #    torch.save(checkpoint, save_dir + self.id + "_bestfitness_from_training.pth")
-            #   print("saved in " + save_dir + self.id + "_bestfitness_from_training.pth")
+            # early stopping ----------------------------
+            if not noval:
+                if val_loss > the_last_loss:
+                    trigger_times += 1
+                    print('trigger:', trigger_times)
+                    if trigger_times >= patience:
+                        print('Early stopping! No progress')
+                        time_elapsed = time.time() - since
+                        print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
+                        return self.model, train_stats, val_stats, best_val
 
-            if not nosave or final_epoch:
-                print("Best fitness...", end=" ")
-                torch.save(best_val, save_dir + "bestfitness_from_validation.pth")
-                print("saved in " + save_dir + "bestfitness_from_validation.pth")
+                else:
+                    trigger_times = 0
+                    print("trigger :0")
+
+                the_last_loss = val_loss
+            # early stopping ---------------------------
         # end epoch ------------------------------------------------------------------------------
 
         time_elapsed = time.time() - since
         print('Training complete in {:.0f}m {:.0f}s'.format(time_elapsed // 60, time_elapsed % 60))
 
-        return self.model, train_stats, val_stats
+        return self.model, train_stats, val_stats, best_val
 
     def val(self, val_loader, score_function, criterion=nn.BCELoss()):
 
