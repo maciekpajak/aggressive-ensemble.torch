@@ -5,7 +5,7 @@ import torch
 from src.aggressive_ensemble.Ensemble import Classifier
 from tests import Classifier2
 from src.aggressive_ensemble.utils.metrics import mAP_score
-import src.aggressive_ensemble.utils.transforms as t
+import src.aggressive_ensemble.utils.preprocessing as t
 import src.aggressive_ensemble.utils.augmentations as a
 import src.aggressive_ensemble.utils.general as gen
 import pandas as pd
@@ -92,20 +92,31 @@ if __name__ == '__main__':
                             batch_size=5, num_workers=1, epochs=5, start_epoch=0,
                             input_size=224, lr=0.01, momentum=0.9, val_every=5,
                             save_every=5, shuffle=False, criterion=nn.BCELoss())
-    resnet50_2 = Classifier(name="resnet50_2",
-                            labels=labels,
-                            model=copy.deepcopy(resnet),
-                            device="cpu",
-                            feature_extract=True,
-                            is_inception=False,
-                            preprocessing=[t.ExtractPolygon(), t.RotateToHorizontal()],
-                            augmentation=[a.RandomHorizontalFlip(), a.RandomVerticalFlip()],
-                            mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225),
-                            batch_size=5, num_workers=1, epochs=15, start_epoch=0,
-                            input_size=224, lr=0.01, momentum=0.9, val_every=1,
-                            save_every=5, shuffle=False, criterion=nn.BCELoss())
+    resnet50_2 = Classifier(name="resnet50_2",              # nazwa klasyfikatora
+                            labels=labels,                  # lista cech
+                            model=copy.deepcopy(resnet),    # model bazowy
+                            device="cpu",                   # gpu lub cpu
+                            feature_extract=True,           #
+                            is_inception=False,             # czy model jest Inception V3
+                            preprocessing=[t.ExtractPolygon(),
+                                           t.RotateToHorizontal()], # transformacje preprocessingu
+                            augmentation=[a.RandomHorizontalFlip(),
+                                          a.RandomVerticalFlip()], # transformacje augmentacji
+                            mean=(0.485, 0.456, 0.406), # średnia do normalizacji
+                            std=(0.229, 0.224, 0.225),  # odchylenie standardowe do normalizacji
+                            batch_size=5,               # wielkość paczki danych
+                            num_workers=1,              # liczba watków
+                            epochs=15,                  # maksymalna liczba epok treningu
+                            start_epoch=0,              # numer pierwszej epoki (przydatne przy wznawianiu treningu)
+                            input_size=224,             # wielkość wejścia
+                            lr=0.01,                    # współczynnik lr
+                            momentum=0.9,               # współczynnik momentum
+                            val_every=1,                # co ile epok walidacja
+                            save_every=5,               # co ile epok zapisywanie aktualnego stanu modelu
+                            shuffle=False,              # czy przetasować dane wejściowe
+                            criterion=nn.BCELoss())     # funkcja strat
 
-    resnet50_2.train(save_dir=save_dir,train_df=train_df, val_df=val_df, data_dir=data_dir, score_function=mAP_score)
+    resnet50_2.train(save_dir=save_dir, train_df=train_df, val_df=val_df, data_dir=data_dir, score_function=mAP_score)
     # show_random_images(num=5,
     #                   df=train_df,
     #                   data_dir=data_dir,
@@ -148,17 +159,17 @@ if __name__ == '__main__':
                                        shuffle=True, num_workers=1)
     classifier1 = Classifier2.Classifier2(name="1", model=copy.deepcopy(resnet), device=device)
     (_, train_stats, val_stats, _) = classifier1.train(save_dir=save_dir,
-                                             score_function=mAP_score,
-                                             train_loader=train_loader,
-                                             val_loader=val_loader,
-                                             epochs=5,
-                                             start_epoch=0,
-                                             lr=0.01,
-                                             momentum=0.9,
-                                             val_every=1,
-                                             save_every=3,
-                                             criterion=nn.BCELoss(),
-                                             optimizer_state_dict=None)
+                                                       score_function=mAP_score,
+                                                       train_loader=train_loader,
+                                                       val_loader=val_loader,
+                                                       epochs=5,
+                                                       start_epoch=0,
+                                                       lr=0.01,
+                                                       momentum=0.9,
+                                                       val_every=1,
+                                                       save_every=3,
+                                                       criterion=nn.BCELoss(),
+                                                       optimizer_state_dict=None)
 
     test_loader = gen.create_dataloader(data_dir=data_dir, dataframe=test_df, labels=labels,
                                         preprocessing=[t.ExtractPolygon(), t.RotateToHorizontal()],

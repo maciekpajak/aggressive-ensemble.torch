@@ -111,6 +111,6 @@ class ImageDataset(Dataset):
         sample = {'image': image, 'polygon': polygon, 'labels': labels}
 
         if self.transform:
-            sample = self.transform(sample)
+            image, polygon, labels = self.transform(image, polygon, labels)
 
-        return tag_id, sample['image'], sample["labels"]
+        return tag_id, image, labels

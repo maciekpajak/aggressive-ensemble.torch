@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 
 from .ImageDataset import ImageDataset
-from .transforms import Rescale, ToTensor, Normalize
+from .preprocessing import Rescale, ToTensor, Normalize
 
 
 def rank_preds(preds: pd.DataFrame) -> pd.DataFrame:

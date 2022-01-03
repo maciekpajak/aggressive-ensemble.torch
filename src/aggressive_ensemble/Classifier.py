@@ -1,7 +1,6 @@
 import os
 import time
 import warnings
-import click
 
 import pandas as pd
 import torch
@@ -22,28 +21,28 @@ class Classifier:
     """
 
     def __init__(self,
-                 name: str,
-                 model,
-                 labels: list,
-                 device: str,
-                 preprocessing,
-                 augmentation,
-                 mean,
-                 std,
-                 batch_size,
-                 num_workers,
-                 epochs=50,
-                 start_epoch=0,
-                 input_size=224,
-                 lr=0.01,
-                 momentum=0.9,
-                 val_every=1,
-                 save_every=3,
-                 shuffle=False,
-                 criterion=nn.BCELoss(),
+                 name: str,             # nazwa klasyfikatora
+                 model,                 # model bazowy
+                 labels: list,          # lista cech
+                 device: str = "cpu",   # gpu lub cpu
+                 preprocessing=[],      # transformacje preprocessingu
+                 augmentation=[],       # transformacje augmentacji
+                 mean=(0, 0, 0),        # średnia do normalizacji
+                 std=(1, 1, 1),         # odchylenie standardowe do normalizacji
+                 batch_size=32,         # wielkość paczki danych
+                 num_workers=1,         # liczba wątków
+                 epochs=50,             # maksymalna liczba epok treningu
+                 start_epoch=0,         # numer startowej epoki
+                 input_size=224,        # wielkość wejścia
+                 lr=0.01,               # współczynnik lr
+                 momentum=0.9,          # współczynnik momentum
+                 val_every=1,           # co ile epok walidacja
+                 save_every=3,          # co ile epok zapisywanie aktualnego stanu modelu
+                 shuffle=False,         # czy przetasować dane wejściowe
+                 criterion=nn.BCELoss(),# funkcja strat
                  feature_extract=True,
-                 is_inception=False,
-                 checkpoint_path=None
+                 is_inception=False,    # czy model jest Inception V3
+                 checkpoint_path=None   # ścieżka do trenowanego już modelu
                  ):
 
         self.id = name
@@ -103,7 +102,7 @@ class Classifier:
 
         if checkpoint_path:
             if not os.path.exists(checkpoint_path):
-                raise ValueError("Checkpoint pathdoesn't exist")
+                raise ValueError("Checkpoint path doesn't exist")
             else:
                 self.load_checkpoint(checkpoint_path)
 
@@ -128,13 +127,9 @@ class Classifier:
         :return: Parameters to update
         :rtype: list
         """
-        # if click.confirm('Show parameters?', default=True):
-        #    print("Parameters:")
-        #    for name, param in self.model.named_parameters():
-        #        print("\t", name)
 
         params_to_update = []
-        # params_to_update = self.model.parameters()
+        params_to_update = self.model.parameters()
         if self.feature_extract:
             for name, param in self.model.named_parameters():
                 if param.requires_grad:
@@ -430,4 +425,4 @@ class Classifier:
 
         self.load_checkpoint(path=path)
 
-        self.train(data_dir, train_df, val_df, score_function, )
+        self.train(data_dir, train_df, val_df, score_function)

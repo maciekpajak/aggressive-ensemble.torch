@@ -1,20 +1,16 @@
-
-import torch
-import numpy as np
 import random
 
 from imgaug import augmenters as iaa
 
+from src.aggressive_ensemble.utils.transform import transform
+
 __all__ = ['RandomVerticalFlip', 'RandomHorizontalFlip', 'RandomRotate', 'SwitchRGBChannels']
 
 
-
-class RandomHorizontalFlip(object):
+class RandomHorizontalFlip(transform):
     """Transformacja losowo odbijająca obraz w pozycji horyzontalnej"""
 
-    def __call__(self, sample):
-        image, polygon, labels = sample['image'], sample['polygon'], sample['labels']
-
+    def __call__(self, image, polygon, labels):
         t = iaa.Fliplr(p=0.5)
         img = t(image=image)
 
@@ -24,12 +20,10 @@ class RandomHorizontalFlip(object):
         return "Random horizonatal flip"
 
 
-class RandomVerticalFlip(object):
+class RandomVerticalFlip(transform):
     """Transformacja losowo odbijająca obraz w pozycji wertykalnej """
 
-    def __call__(self, sample):
-        image, polygon, labels = sample['image'], sample['polygon'], sample['labels']
-
+    def __call__(self, image, polygon, labels):
         t = iaa.Flipud(p=0.5)
         img = t(image=image)
 
@@ -39,12 +33,10 @@ class RandomVerticalFlip(object):
         return "Random vertical flip"
 
 
-class RandomRotate(object):
+class RandomRotate(transform):
     """Transformacja obracająca obiekt o losowy kąt"""
 
-    def __call__(self, sample):
-        image, polygon, labels = sample['image'], sample['polygon'], sample['labels']
-
+    def __call__(self, image, polygon, labels):
         t = iaa.Sequential([iaa.Affine(rotate=(0, 360))])
         img = t(image=image)
 
@@ -54,11 +46,10 @@ class RandomRotate(object):
         return "Random rotation"
 
 
-class SwitchRGBChannels(object):
+class SwitchRGBChannels(transform):
     """Transformacja zamieniająca kanały RGB"""
 
-    def __call__(self, sample):
-        image, polygon, labels = sample['image'], sample['polygon'], sample['labels']
+    def __call__(self, image, polygon, labels):
 
         x = bool(random.getrandbits(1))
         if labels["color_red"] == 1:
@@ -98,7 +89,7 @@ class SwitchRGBChannels(object):
         return "Switch RGB channels"
 
 
-class RandomCrop(object):
+class RandomCrop(transform):
     """Transformacja przycinająca obraz"""
 
     def __init__(self, size_x, size_y):
@@ -106,9 +97,7 @@ class RandomCrop(object):
         if size_x[0] <= 0 or size_y[1] <= 0:
             ValueError("Output size must greater than 0")
 
-
-    def __call__(self, sample):
-        image, polygon, labels = sample['image'], sample['polygon'], sample['labels']
+    def __call__(self, image, polygon, labels):
 
         h, w = image.shape[:2]
         top = max(0, min(row[1] for row in polygon))

@@ -10,15 +10,6 @@ __all__ = ['resnet50', 'resnet152', 'alexnet', 'vgg', 'densenet',
 
 
 def set_parameter_requires_grad(model, feature_extracting):
-    """
-
-    :param model:
-    :type model:
-    :param feature_extracting:
-    :type feature_extracting:
-    :return:
-    :rtype:
-    """
     if feature_extracting:
         for param in model.parameters():
             param.requires_grad = False

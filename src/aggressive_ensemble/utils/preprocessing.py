@@ -1,23 +1,21 @@
-import time
-from typing import Union, Tuple
+from typing import Tuple
 
 import torch
 import numpy as np
-import random
-
 from torchvision import transforms
 from imgaug.augmentables.polys import Polygon
 from imgaug import augmenters as iaa
-import imgaug
+
+from src.aggressive_ensemble.utils.transform import transform
 
 __all__ = ['Rescale', 'RotateToHorizontal', 'EdgeDetection', 'ChangeColorspace', 'ExtractPolygon', 'Crop',
            'Normalize', 'ToTensor']
 
 
-class RotateToHorizontal(object):
+class RotateToHorizontal(transform):
     """Transformacja obracająca obiekt na obrazie do pozycji horyzontalnej"""
 
-    def __call__(self, sample):
+    def __call__(self, image, polygon, labels):
         """
 
         :param sample:
@@ -25,7 +23,6 @@ class RotateToHorizontal(object):
         :return:
         :rtype:
         """
-        image, polygon, labels = sample['image'], sample['polygon'], sample['labels']
 
         h, w = image.shape[:2]
         y1, x1 = polygon[1, 1] - polygon[0, 1], polygon[1, 0] - polygon[0, 0]
@@ -47,11 +44,10 @@ class RotateToHorizontal(object):
         return "Rotiation to horizontal"
 
 
-class EdgeDetection(object):
+class EdgeDetection(transform):
     """Transformacja przeprowadzająca detekcję krawędzi"""
 
-    def __call__(self, sample):
-        image, polygon, labels = sample['image'], sample['polygon'], sample['labels']
+    def __call__(self, image, polygon, labels):
         t = iaa.EdgeDetect(alpha=1.0)
         img = t(image=image)
         return {'image': img, 'polygon': polygon, 'labels': labels}
@@ -60,7 +56,7 @@ class EdgeDetection(object):
         return "Edge detection"
 
 
-class ChangeColorspace(object):
+class ChangeColorspace(transform):
     """Transformacja zmieniająca przestrzeń kolorystyczną obrazu
 
     :param from_colorspace: Pierwotna przestrzeń kolorystyczna obrazu Allowed strings are: 
@@ -76,8 +72,7 @@ class ChangeColorspace(object):
         self.from_colorspace = from_colorspace
         self.to_colorspace = to_colorspace
 
-    def __call__(self, sample):
-        image, polygon, labels = sample['image'], sample['polygon'], sample['labels']
+    def __call__(self, image, polygon, labels):
         t = iaa.ChangeColorspace(from_colorspace=self.from_colorspace,
                                  to_colorspace=self.to_colorspace)
         img = t(image=image)
@@ -87,13 +82,12 @@ class ChangeColorspace(object):
         return "Change colorspace from " + self.from_colorspace + " to " + self.to_colorspace
 
 
-class ExtractPolygon(object):
+class ExtractPolygon(transform):
     """Transformacja ekstachująca z obrazu sam obiekt (na podstawie podanych punktów wierzchołków obiektu)"""
 
-    def __call__(self, sample):
-        image, polygon, labels = sample['image'], sample['polygon'], sample['labels']
+    def __call__(self, image, polygon, labels):
         p = Polygon(polygon)
-        #t = iaa.Pad(px=0)
+        # t = iaa.Pad(px=0)
         img = p.extract_from_image(image)
         return {'image': img, 'polygon': polygon, 'labels': labels}
 
@@ -101,11 +95,10 @@ class ExtractPolygon(object):
         return "Extract object"
 
 
-class Crop(object):
+class Crop(transform):
     """Transformacja przycinająca obraz"""
 
-    def __call__(self, sample):
-        image, polygon, labels = sample['image'], sample['polygon'], sample['labels']
+    def __call__(self, image, polygon, labels):
 
         h, w = image.shape[:2]
         top = max(0, min(row[1] for row in polygon))
@@ -125,15 +118,14 @@ class Crop(object):
         return "Crop image"
 
 
-class Normalize(object):
+class Normalize(transform):
     """Transformacja normalizująca obraz"""
 
     def __init__(self, mean: float, std: float):
         self.mean = mean
         self.std = std
 
-    def __call__(self, sample):
-        image, polygon, labels = sample['image'], sample['polygon'], sample['labels']
+    def __call__(self, image, polygon, labels):
         t = transforms.Normalize(mean=self.mean, std=self.std)
         img = t(image)
         return {'image': img, 'polygon': polygon, 'labels': labels}
@@ -142,7 +134,7 @@ class Normalize(object):
         return "Normalize image mean=" + str(self.mean) + ", std=" + str(self.std)
 
 
-class Rescale(object):
+class Rescale(transform):
     """Transformacja skalująca obraz"""
 
     def __init__(self, output_size: Tuple[int, int]):
@@ -152,10 +144,7 @@ class Rescale(object):
             ValueError("Output size must greater than 0")
         self.output_size = output_size
 
-    def __call__(self, sample):
-
-        image, polygon, labels = sample['image'], sample['polygon'], sample['labels']
-
+    def __call__(self, image, polygon, labels):
         h, w = image.shape[:2]
         if isinstance(self.output_size, int):
             if h > w:
@@ -180,12 +169,10 @@ class Rescale(object):
         return "Rescale image to " + str(self.output_size)
 
 
-class ToTensor(object):
+class ToTensor(transform):
     """Convert ndarrays in sample to Tensors."""
 
-    def __call__(self, sample):
-        image, polygon, labels = sample['image'], sample['polygon'], sample['labels']
-
+    def __call__(self, image, polygon, labels):
         t = transforms.ToTensor()
         img = t(image)
         torch.FloatTensor(labels.values)
@@ -194,5 +181,4 @@ class ToTensor(object):
 
     def __str__(self):
         return "Convert to tensor"
-
 
