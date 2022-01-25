@@ -28,7 +28,7 @@ class Ensemble:
 
         self.id = id
 
-        if not isinstance(labels, list) or not isinstance(labels, tuple):
+        if not isinstance(labels, list) and not isinstance(labels, tuple):
             raise ValueError("Labels should be list/tuple")
         if not labels:
             raise ValueError("Labels list cannot be empty")

@@ -9,6 +9,9 @@ import pandas as pd
 from torch import nn
 from examples.own_transforms import *
 
+
+
+
 models_configs = {
     "resnet152_1": {
         "name": "resnet152_test3",
@@ -114,7 +117,7 @@ if __name__ == '__main__':
                             shuffle=False,  # czy przetasować dane wejściowe
                             criterion=nn.BCELoss())  # funkcja strat
 
-    # resnet50_2.train(save_dir=save_dir, train_df=train_df, val_df=val_df, data_dir=data_dir, score_function=mAP_score)
+    resnet50_2(save_dir=save_dir, test_df=train_df, data_dir=data_dir)
     # show_random_images(num=5,
     #                   df=train_df,
     #                   data_dir=data_dir,
@@ -155,6 +158,7 @@ if __name__ == '__main__':
                            preprocessing=[ExtractPolygon()],
                            augmentation=[],
                            input_size=224)
+
     #
     #
     # val_loader = gen.create_dataloader(data_dir=data_dir, dataframe=val_df, labels=labels,
@@ -163,7 +167,7 @@ if __name__ == '__main__':
     #                                    input_size=224, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225),
     #                                    batch_size=5,
     #                                    shuffle=True, num_workers=1)
-    # classifier1 = Classifier2.Classifier2(name="1", model=copy.deepcopy(resnet), device=device)
+    classifier1 = Classifier2.Classifier2(name="1", model=copy.deepcopy(resnet), device=device)
     # (_, train_stats, val_stats, _) = classifier1.train(save_dir=save_dir,
     #                                                    score_function=mAP_score,
     #                                                    train_loader=train_loader,
