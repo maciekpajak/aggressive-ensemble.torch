@@ -4,7 +4,6 @@ import pandas as pd
 import numpy as np
 from PIL import Image
 import os
-import time
 from typing import List
 
 
@@ -23,9 +22,6 @@ class ImageDataset(Dataset):
 
     def __init__(self, df: pd.DataFrame, data_dir: str, labels: List[str], transform=None):
         """
-
-        :param csv_file:
-        :type csv_file:
         :param data_dir:
         :type data_dir:
         :param labels:
@@ -46,18 +42,11 @@ class ImageDataset(Dataset):
             raise ValueError("Transform should be a function")
 
         self.df = df
-        columns = self.df.columns.to_list()
-        missing_cols = []
-        for label in labels:
-            if label not in columns:
-                missing_cols.append(label)
-        for mc in missing_cols:
-            self.df[mc] = 0
         self.data_dir = data_dir
         self.labels = labels
         self.transform = transform
-        #self.df = self.df.replace(to_replace=-1, value=0)
-        #self.df = self.df.reset_index()
+        # self.df = self.df.replace(to_replace=-1, value=0)
+        # self.df = self.df.reset_index()
 
     def __len__(self):
         """
@@ -82,7 +71,7 @@ class ImageDataset(Dataset):
         img_id = self.df['image_id'][idx]
 
         polygon_points = []
-        for i in range(1, 50, 1):
+        for i in range(1, 5, 1):
             px = 'p' + str(i) + '_x'
             py = 'p' + str(i) + '_y'
             if px in self.df.columns and py in self.df.columns:
@@ -97,20 +86,14 @@ class ImageDataset(Dataset):
         polygon = np.array([polygon])
         polygon = polygon.astype('int32').reshape(-1, 2)
 
-        # glob.glob(self.data_dir + str(img_id) + '.*')[0]
-        # list(Path(self.data_dir).glob(str(img_id) + '.*'))[0]
-        # paths = glob.glob(self.data_dir + str(img_id) + '.jpg')
-        # if not paths:
-        #    raise FileNotFoundError("There is no file {}".format(self.data_dir + str(img_id) + '.jpg'))
-
         path = self.data_dir + str(img_id)
         if not os.path.exists(path):
             raise FileNotFoundError("There is no file {}".format(self.data_dir + str(img_id)))
 
-        image = np.asarray(Image.open(path).convert('RGB'))
+        image = Image.open(path).convert('RGB')
         sample = {'image': image, 'polygon': polygon, 'labels': labels}
 
         if self.transform:
-            image, polygon, labels = self.transform(image, polygon, labels)
+            sample = self.transform(sample)
 
-        return tag_id, image, labels
+        return tag_id, sample["image"], sample["labels"]

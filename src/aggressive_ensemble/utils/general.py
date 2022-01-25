@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 
 from .ImageDataset import ImageDataset
-from .preprocessing import Rescale, ToTensor, Normalize
+from .transforms import Resize, ToTensor, Normalize
 
 
 def rank_preds(preds: pd.DataFrame) -> pd.DataFrame:
@@ -108,9 +108,9 @@ def create_dataloader(data_dir,
     if augmentation is None:
         augmentation = []
 
-    adapt = [Rescale(output_size=(input_size, input_size)),
-             ToTensor(),
-             Normalize(mean=mean, std=std)]
+    adapt = [Resize(h=input_size, w=input_size),
+             Normalize(mean=mean, std=std),
+             ToTensor()]
     transform = transforms.Compose(preprocessing + augmentation + adapt)
     dataset = ImageDataset(dataframe, data_dir, labels, transform)
     dataloader = DataLoader(dataset=dataset,
@@ -143,7 +143,7 @@ def show_random_images(num: int,
                                mean=mean,
                                std=std,
                                batch_size=num,
-                               shuffle=True,
+                               shuffle=False,
                                num_workers=0)
     tag_id, images, labels = next(iter(loader))
     to_pil = transforms.ToPILImage()
@@ -157,9 +157,7 @@ def show_random_images(num: int,
 
 
 def check(test_df: pd.DataFrame, answer_df: pd.DataFrame, labels: list):
-
-
-    test_df= test_df.replace(to_replace=-1, value=0)
+    test_df = test_df.replace(to_replace=-1, value=0)
     test_df = test_df.set_index('tag_id')
 
     mAP = 0.0

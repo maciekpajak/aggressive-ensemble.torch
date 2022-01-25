@@ -25,8 +25,8 @@ class Classifier:
                  model,                 # model bazowy
                  labels: list,          # lista cech
                  device: str = "cpu",   # gpu lub cpu
-                 preprocessing=[],      # transformacje preprocessingu
-                 augmentation=[],       # transformacje augmentacji
+                 preprocessing=None,      # transformacje preprocessingu
+                 augmentation=None,       # transformacje augmentacji
                  mean=(0, 0, 0),        # średnia do normalizacji
                  std=(1, 1, 1),         # odchylenie standardowe do normalizacji
                  batch_size=32,         # wielkość paczki danych
@@ -45,8 +45,15 @@ class Classifier:
                  checkpoint_path=None   # ścieżka do trenowanego już modelu
                  ):
 
+        if augmentation is None:
+            augmentation = []
+        if preprocessing is None:
+            preprocessing = []
+
         self.id = name
 
+        if not isinstance(labels, list) or not isinstance(labels, tuple):
+            raise ValueError("Labels should be list/tuple")
         if not labels:
             raise ValueError("Labels list cannot be empty")
 
@@ -59,23 +66,9 @@ class Classifier:
                 warnings.warn("CUDA is not available! Switched to CPU")
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        # if not os.path.isdir(save_dir):
-        #    raise ValueError(f"Saving directory {save_dir} is not a directory or doesn't exist")
-
-        # self.save_dir = save_dir
-        # if not os.path.exists(self.save_dir):
-        #    os.makedirs(self.save_dir)
-        # if os.path.exists(self.save_dir):
-        #    if click.confirm('Do you want to continue?', default=True):
-        #        print('Do something')
-        # print(f"Outputs will be saved in {self.save_dir}")
-
         self.labels = labels
 
         self.feature_extract = feature_extract
-
-        # if not os.path.exists(path):
-        #    raise ValueError("Provided model path {} doesn't exist".format(path))
 
         self.model = model.to(self.device)
 
@@ -129,7 +122,6 @@ class Classifier:
         """
 
         params_to_update = []
-        params_to_update = self.model.parameters()
         if self.feature_extract:
             for name, param in self.model.named_parameters():
                 if param.requires_grad:
@@ -156,7 +148,8 @@ class Classifier:
               save_dir: str,
               train_df: pd.DataFrame,
               val_df: pd.DataFrame,
-              score_function
+              score_function,
+              patience=2
               ):
         """
 
@@ -212,7 +205,7 @@ class Classifier:
         val_score = 0.0
         val_loss = 0.0
         the_last_loss = 100
-        patience = 2
+        patience = patience
         trigger_times = 0
         best_val = {'epoch': self.start_epoch,
                     'model_state_dict': self.model.state_dict(),
@@ -312,7 +305,6 @@ class Classifier:
             if not noval:
                 if val_loss > the_last_loss:
                     trigger_times += 1
-                    print('trigger:', trigger_times)
                     if trigger_times >= patience:
                         print('Early stopping! No progress')
                         time_elapsed = time.time() - since
@@ -368,7 +360,7 @@ class Classifier:
 
         return epoch_loss, score, labels_score
 
-    def detect(self,
+    def __call__(self,
                test_df: pd.DataFrame,
                data_dir: str,
                save_dir: str,

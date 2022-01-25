@@ -13,24 +13,30 @@ class Ensemble:
 
 
     """
-    ensemble = {}
-    models = {}
 
     def __init__(self,
                  id: str,
-                 save_dir: str,
                  labels: list,
-                 ensemble_structure: dict = None,
+                 ensemble_structure: dict,
+                 save_dir: str = os.getcwd(),
                  device: str = "cpu"):
         """Konstuktor klasy
 
         :param ensemble: Konfiguracja każdego modelu komitetu
         :type ensemble: dict
         """
+
         self.id = id
 
+        if not isinstance(labels, list) or not isinstance(labels, tuple):
+            raise ValueError("Labels should be list/tuple")
         if not labels:
             raise ValueError("Labels list cannot be empty")
+
+        if isinstance(ensemble_structure, dict):
+            raise ValueError("Ensemble structure should be dictionary")
+        if ensemble_structure == {}:
+            raise ValueError("Ensemble structure cannot be empty")
 
         if device not in ["cpu", "gpu"]:
             raise ValueError("Device should be either cpu or gpu")
@@ -115,18 +121,18 @@ class Ensemble:
                 if model.id in c_dict.keys():
                     continue
 
-                (_, train_stats, val_stats,_) = model.train(data_dir=data_dir,
-                                                          save_dir=save_dir,
-                                                          train_df=train_df,
-                                                          val_df=val_df,
-                                                          score_function=score_function)
+                (_, train_stats, val_stats, _) = model.train(data_dir=data_dir,
+                                                             save_dir=save_dir,
+                                                             train_df=train_df,
+                                                             val_df=val_df,
+                                                             score_function=score_function)
                 c_dict[model.id] = True
             # end subensemble models detecting --------------------------------------
 
-    def detect(self,
-               test_df: pd.DataFrame,
-               data_dir: str,
-               silent_mode=False) -> (pd.DataFrame, pd.DataFrame, pd.DataFrame):
+    def __call__(self,
+                 test_df: pd.DataFrame,
+                 data_dir: str,
+                 silent_mode=False) -> (pd.DataFrame, pd.DataFrame, pd.DataFrame):
         """
 
         :return:
@@ -169,10 +175,10 @@ class Ensemble:
                     answers_dict[model.id].to_csv(save_dir + "answer.csv")
                     continue
 
-                ans = model.detect(test_df=test_df,
-                                   data_dir=data_dir,
-                                   save_dir=save_dir,
-                                   silent_mode=silent_mode)
+                ans = model(test_df=test_df,
+                            data_dir=data_dir,
+                            save_dir=save_dir,
+                            silent_mode=silent_mode)
                 answers_dict[model.id] = ans
                 answers.extend([ans[subensemble_labels]])
             # end subensemble models detecting --------------------------------------
@@ -191,10 +197,7 @@ class Ensemble:
             answer_probabilities[subensemble_labels] = answer1[subensemble_labels]
             answer_ranking[subensemble_labels] = answer2[subensemble_labels]
 
-            answer_01 = answer_probabilities > 0.5
-
             answer_probabilities.to_csv(self.save_dir + "ensemble_answer_probabilities.csv")
-            answer_01.to_csv(self.save_dir + "ensemble_answer_01.csv")
             answer_ranking.to_csv(self.save_dir + "ensemble_answer_ranking.csv", index=False)
 
-        return answer_probabilities, answer_01, answer_ranking
+        return answer_probabilities, answer_ranking
